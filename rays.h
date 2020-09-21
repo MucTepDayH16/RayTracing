@@ -1,6 +1,6 @@
 #pragma once
 #include <cuda_runtime.h>
-//#include <cuda_gl_interop.h>
+#include <cuda_gl_interop.h>
 
 namespace cuda {
 
