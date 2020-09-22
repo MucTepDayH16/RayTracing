@@ -5,14 +5,14 @@
 #include <cmath>
 #include <memory>
 
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_opengl.h>
+#include <SDL2\SDL.h>
+#include <SDL2\SDL_image.h>
+#include <SDL2\SDL_opengl.h>
 
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
 
-#define CUDA_SET_GRID(c,n) ( c - 1 ) / Block##n##d.c + 1
+#include "defines.h"
 
 namespace cuda {
 
@@ -56,30 +56,41 @@ cudaStream_t Stream( size_t );
 
 namespace primitives {
 
+static const size_t base_size = 24;
+
 typedef unsigned char byte;
 typedef float scalar;
 typedef float3 point;
 
-class base {
-protected:
-    char data[ 32 ];
-public:
-    virtual __device__ scalar dist( const point& ) = 0;
-    virtual __device__ point norm( const point& ) = 0;
+typedef scalar( *dist_func )( byte*, const point& );
+typedef point( *norm_func )( byte*, const point& );
+
+enum object_type {
+    type_none,
+    type_sphere
 };
+
+static __device__ __inline__ point mul_point( const point& p, const scalar& s ) {
+    return point{ s * p.x, s * p.y, s * p.z };
+}
+
+template< typename __TYPE__ >
+union byte_cast {
+    __TYPE__ data;
+    byte source[ sizeof __TYPE__ ];
+};
+
+struct base {
+    byte data[ base_size ];
+    enum object_type type;
+    __device__ __host__ base( enum object_type _type = type_none ) : type( _type ) {}
+};
+
+template <enum object_type> class object : public base {};
 
 typedef base* base_ptr;
 
-class sphere : public base {
-protected:
-// data = radius(4) , center_x(4) , center_y(4) , center_z(4)
-    typedef struct alignas(4) { scalar r; point c; } data_struct;
-public:
-    sphere( const point&, const scalar& );
-
-    __device__ scalar dist( const point& ) override;
-    __device__ point norm( const point& ) override;
-};
+CREATE_OBJECT_TYPE_DESCRIPTION( sphere, struct { point c; scalar r; } )
 
 };
 
@@ -91,7 +102,7 @@ typedef float3 point;
 typedef struct { point p, d; } ray;
 typedef struct { size_t Width, Height, Depth; point StartPos, StartDir, StartWVec, StartHVec; } start_init_rays_info;
 
-int Start( point *LightSource, primitives::base *Primitives, const size_t Width, const size_t Height, cudaStream_t stream = 0 );
-bool ImageProcessing( cudaSurfaceObject_t, size_t, size_t, size_t, cudaStream_t stream = 0 );
+int Start( point &LightSource, std::list< primitives::base_ptr > &Primitives, const size_t &width, const size_t &height, const cudaSurfaceObject_t &surface, cudaStream_t stream = 0 );
+bool ImageProcessing( size_t, cudaStream_t stream = 0 );
 
 };

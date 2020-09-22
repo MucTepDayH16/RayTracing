@@ -1,23 +1,47 @@
 #include "rays.h"
 #include <cuda_device_runtime_api.h>
 
-#define RAYS_BLOCK_1D_x 256
+namespace primitives {
+//__device__ scalar sphere::dist( byte *data, const point& p ) {
+//    point c = DATA->c;
+//    return norm3df( p.x - c.x, p.y - c.y, p.z - c.z ) - DATA->r;
+//}
+//
+//__device__ point sphere::norm( byte *data, const point& p ) {
+//    point c = DATA->c, dp = point{ p.x - c.x, p.y - c.y , p.z - c.z };
+//    return mul_point( dp, rnorm3df( dp.x, dp.y, dp.z ) );
+//}
+//
+//__host__ base_ptr sphere::create( const point& center, const scalar& radius ) {
+//    base_ptr NEW = new base( type_sphere );
+//
+//    byte_cast< data_struct > _data;
+//    _data.data.r = radius;
+//    _data.data.c = center;
+//
+//    memcpy( NEW->data, _data.source, sizeof data_struct );
+//    return NEW;
+//}
 
-#define RAYS_BLOCK_2D_x 16
-#define RAYS_BLOCK_2D_y 16
+// SPHERE
+CREATE_OBJECT_TYPE_DEFINITION( sphere,
+                               {
+                                   return norm3df( p.x - data->c.x, p.y - data->c.y, p.z - data->c.z ) - data->r;
+                               },
+                               {
+                                   point dp; dp.x = p.x - data->c.x; dp.y = p.y - data->c.y; dp.z = p.z - data->c.z; return mul_point( dp, rnorm3df( dp.x, dp.y, dp.z ) );
+                               } )
 
-#define RAYS_BLOCK_3D_x 8
-#define RAYS_BLOCK_3D_y 8
-#define RAYS_BLOCK_3D_z 4
-
-#define RAYS_COORD_nD(c,n) blockIdx.##c * RAYS_BLOCK_##n##D_##c + threadIdx.##c
-
-#define KERNEL_PTR *__restrict__
+};
 
 namespace raymarching {
 
+static size_t Width, Height;
+static cudaSurfaceObject_t Surface_d;
+
 static point *LightSource_d;
 static primitives::base *Primitives_d;
+static size_t PrimitivesNum;
 static ray *Rays_d;
 static start_init_rays_info *Info_d;
 
@@ -47,14 +71,14 @@ static __device__ __inline__ point add_point( const point& p1, const point& p2 )
 }
 
 static __global__ void kernelStart( start_init_rays_info KERNEL_PTR Info, ray KERNEL_PTR Rays ) {
-    size_t
+    int64_t
         x = RAYS_COORD_nD(x,2),
         y = RAYS_COORD_nD(y,2);
 
     if ( x < Info->Width && y < Info->Height ) {
         scalar
-            X = .5f * ( 2 * x - Info->Width + 1 ),
-            Y = .5f * ( 2 * y - Info->Height + 1 ),
+            X = .5f * ( 2 * x - int64_t( Info->Width ) + 1 ),
+            Y = .5f * ( 2 * y - int64_t( Info->Height ) + 1 ),
             Z = Info->Depth;
 
         point pos;
@@ -65,26 +89,40 @@ static __global__ void kernelStart( start_init_rays_info KERNEL_PTR Info, ray KE
         scalar R_1 = rnorm3df( pos.x, pos.y, pos.z );
 
         ray *self = Rays + y * Info->Width + x;
-        self->d = mul_point( pos, R_1 );
+        self->d = Info->StartDir;//mul_point( pos, R_1 );
         self->p = add_point( pos, Info->StartPos );
     }
 }
 
-int Start( point *LightSource, primitives::base *Primitives, const size_t Width, const size_t Height, cudaStream_t stream ) {
-    LightSource_d = LightSource;
-    Primitives_d = Primitives;
+int Start( point &LightSource, std::list< primitives::base_ptr > &Primitives, const size_t &width, const size_t &height, const cudaSurfaceObject_t &surface, cudaStream_t stream ) {
+    Width = width;
+    Height = height;
+    Surface_d = surface;
+
+    cudaMalloc( &LightSource_d, sizeof point );
+    cudaMemcpyAsync( LightSource_d, &LightSource, sizeof point, cudaMemcpyHostToDevice, stream );
+
+    PrimitivesNum = Primitives.size();
+    size_t i = 0;
+    cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::base );
+    for ( primitives::base_ptr ptr : Primitives ) {
+        //ptr = primitives::sphere::create( point{ 200.f, 0.f, 0.f }, 50.f );
+        cudaMemcpyAsync( Primitives_d + i, ptr, sizeof primitives::base, cudaMemcpyHostToDevice, stream );
+        ++i;
+    }
+
     cudaMalloc( &Rays_d, Width * Height * sizeof ray );
 
     start_init_rays_info Info_h;
     Info_h.Width = Width;
     Info_h.Height = Height;
-    Info_h.Depth = max( Width, Height );
+    Info_h.Depth = 100; // max( Width, Height );
     Info_h.StartPos = point{ 0.f, 0.f, 0.f };
     Info_h.StartDir = point{ 1.f, 0.f, 0.f };
     Info_h.StartWVec = point{ 0.f, -1.f, 0.f };
     Info_h.StartHVec = point{ 0.f, 0.f, -1.f };
     cudaMalloc( &Info_d, sizeof start_init_rays_info );
-    cudaMemcpy( Info_d, &Info_h, sizeof start_init_rays_info, cudaMemcpyHostToDevice );
+    cudaMemcpyAsync( Info_d, &Info_h, sizeof start_init_rays_info, cudaMemcpyHostToDevice, stream );
 
     kernelStart <<< grid( Width, Height ), block_2d, 0, stream >>> ( Info_d, Rays_d );
     cudaStreamSynchronize( stream );
@@ -92,19 +130,55 @@ int Start( point *LightSource, primitives::base *Primitives, const size_t Width,
     return 1;
 }
 
-static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t width, size_t height, size_t time ) {
+static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t width, size_t height, size_t time, ray KERNEL_PTR Rays, point KERNEL_PTR LightSource, primitives::base KERNEL_PTR Primitives, size_t PrimitivesNum ) {
     size_t  x = RAYS_COORD_nD( x, 2 ),
             y = RAYS_COORD_nD( y, 2 );
 
     if ( x < width && y < height ) {
-        uchar4 pixel = uchar4{ time & 0xff, ( x + y ) & 0xff, 0x00, 0xff };
-        surf2Dwrite( pixel, image, x << 2, y );
+        size_t I;
+        scalar min_dist, curr_dist, ray_dist = 0, R = 50.f;
+        point C = point{ 200.f, 0.f, 0.f };
+        ray r = Rays[ y * width + x ];
+
+        primitives::base    curr_object;
+        size_t              curr_type;
+
+        while ( ray_dist < RAYS_MAX_DIST ) {
+            min_dist = RAYS_MAX_DIST;
+
+            for ( size_t I = 0; I < PrimitivesNum; ++I ) {
+                curr_object = Primitives[ I ];
+                curr_type = curr_object.type;
+
+                switch ( curr_type ) {
+                CREATE_OBJECT_TYPE_PROCESSING( sphere )
+                default:
+                    curr_dist = RAYS_MAX_DIST;
+                }
+
+                if ( min_dist > curr_dist )
+                    min_dist = curr_dist;
+            }
+
+            r.p.x += min_dist * r.d.x;
+            r.p.y += min_dist * r.d.y;
+            r.p.z += min_dist * r.d.z;
+
+            if ( min_dist < RAYS_MIN_DIST ) {
+                uchar3 COLOR = uchar3{ 0xff, 0xff, 0xff };
+                uchar4 PIXEL = RGB_PIXEL( COLOR );
+                surf2Dwrite( PIXEL, image, x * 4, y );
+                break;
+            }
+
+            ray_dist += min_dist;
+        }
     }
 }
 
-bool ImageProcessing( cudaSurfaceObject_t image, size_t width, size_t height, size_t time, cudaStream_t stream ) {
-    kernelImageProcessing <<< grid( width, height ), block_2d, 0, stream >>>
-        ( image, width, height, time );
+bool ImageProcessing( size_t time, cudaStream_t stream ) {
+    kernelImageProcessing <<< grid( Width, Height ), block_2d, 0, stream >>>
+        ( Surface_d, Width, Height, time, Rays_d, LightSource_d, Primitives_d, PrimitivesNum );
     cudaStreamSynchronize( stream );
     return true;
 }
