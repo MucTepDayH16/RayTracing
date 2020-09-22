@@ -1,6 +1,18 @@
 #pragma once
+
+#include <iostream>
+#include <list>
+#include <cmath>
+#include <memory>
+
+#include <SDL.h>
+#include <SDL_image.h>
+#include <SDL_opengl.h>
+
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
+
+#define CUDA_SET_GRID(c,n) ( c - 1 ) / Block##n##d.c + 1
 
 namespace cuda {
 
@@ -36,6 +48,9 @@ public:
 
     operator __POINTER__() { return device_ptr; }
 };
+
+bool Init( size_t StreamsCount = 1 );
+cudaStream_t Stream( size_t );
 
 };
 
@@ -76,6 +91,7 @@ typedef float3 point;
 typedef struct { point p, d; } ray;
 typedef struct { size_t Width, Height, Depth; point StartPos, StartDir, StartWVec, StartHVec; } start_init_rays_info;
 
-int start( point *LightSource, primitives::base *Primitives, const size_t Width, const size_t Height );
+int Start( point *LightSource, primitives::base *Primitives, const size_t Width, const size_t Height, cudaStream_t stream = 0 );
+bool ImageProcessing( cudaSurfaceObject_t, size_t, size_t, size_t, cudaStream_t stream = 0 );
 
 };

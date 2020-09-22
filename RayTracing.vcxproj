@@ -21,6 +21,10 @@
   <ItemGroup>
     <ClInclude Include="rays.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+    <None Include="README.md" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1B8DBB37-3A6A-4E19-B83C-F709FE144482}</ProjectGuid>
     <RootNamespace>RayTracing</RootNamespace>
