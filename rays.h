@@ -90,6 +90,7 @@ template <enum object_type> class object : public base {};
 
 typedef base* base_ptr;
 
+// TYPE_LIST
 CREATE_OBJECT_TYPE_DESCRIPTION( sphere, struct { point c; scalar r; } )
 
 };

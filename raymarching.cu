@@ -2,28 +2,8 @@
 #include <cuda_device_runtime_api.h>
 
 namespace primitives {
-//__device__ scalar sphere::dist( byte *data, const point& p ) {
-//    point c = DATA->c;
-//    return norm3df( p.x - c.x, p.y - c.y, p.z - c.z ) - DATA->r;
-//}
-//
-//__device__ point sphere::norm( byte *data, const point& p ) {
-//    point c = DATA->c, dp = point{ p.x - c.x, p.y - c.y , p.z - c.z };
-//    return mul_point( dp, rnorm3df( dp.x, dp.y, dp.z ) );
-//}
-//
-//__host__ base_ptr sphere::create( const point& center, const scalar& radius ) {
-//    base_ptr NEW = new base( type_sphere );
-//
-//    byte_cast< data_struct > _data;
-//    _data.data.r = radius;
-//    _data.data.c = center;
-//
-//    memcpy( NEW->data, _data.source, sizeof data_struct );
-//    return NEW;
-//}
 
-// SPHERE
+// TYPE_LIST
 CREATE_OBJECT_TYPE_DEFINITION( sphere,
                                {
                                    return norm3df( p.x - data->c.x, p.y - data->c.y, p.z - data->c.z ) - data->r;
@@ -150,9 +130,8 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
                 curr_object = Primitives[ I ];
                 curr_type = curr_object.type;
 
-                switch ( curr_type ) {
-                CREATE_OBJECT_TYPE_PROCESSING( sphere )
-                default:
+                switch ( curr_type ) { // TYPE_LIST
+                    CREATE_OBJECT_TYPE_PROCESSING( sphere )
                     curr_dist = RAYS_MAX_DIST;
                 }
 

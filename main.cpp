@@ -12,15 +12,15 @@ int main( int argc, char **argv ) {
 
     std::list< primitives::base_ptr > PrimitivesH;
     {
-        PrimitivesH.push_back( primitives::sphere::create( primitives::sphere::data_struct{ float3{ 200.f, 0.f, 0.f }, 50.f } ) );
-        PrimitivesH.push_back( primitives::sphere::create( primitives::sphere::data_struct{ float3{ 200.f, 100.f, 0.f }, 50.f } ) );
-        PrimitivesH.push_back( primitives::sphere::create( primitives::sphere::data_struct{ float3{ 200.f, 200.f, 0.f }, 50.f } ) );
-        PrimitivesH.push_back( primitives::sphere::create( primitives::sphere::data_struct{ float3{ 200.f, 300.f, 0.f }, 50.f } ) );
-        PrimitivesH.push_back( primitives::sphere::create( primitives::sphere::data_struct{ float3{ 200.f, 400.f, 0.f }, 50.f } ) );
-        PrimitivesH.push_back( primitives::sphere::create( primitives::sphere::data_struct{ float3{ 200.f, -100.f, 0.f }, 50.f } ) );
-        PrimitivesH.push_back( primitives::sphere::create( primitives::sphere::data_struct{ float3{ 200.f, -200.f, 0.f }, 50.f } ) );
-        PrimitivesH.push_back( primitives::sphere::create( primitives::sphere::data_struct{ float3{ 200.f, -300.f, 0.f }, 50.f } ) );
-        PrimitivesH.push_back( primitives::sphere::create( primitives::sphere::data_struct{ float3{ 200.f, -400.f, 0.f }, 50.f } ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 200.f, 0.f, 0.f }, 50.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 200.f, 100.f, 0.f }, 40.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 200.f, 200.f, 0.f }, 30.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 200.f, 300.f, 0.f }, 20.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 200.f, 400.f, 0.f }, 10.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 200.f, -100.f, 0.f }, 40.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 200.f, -200.f, 0.f }, 30.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 200.f, -300.f, 0.f }, 20.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 200.f, -400.f, 0.f }, 10.f ) );
     }
 
     size_t Width = 800, Height = 600;
