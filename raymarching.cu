@@ -3,15 +3,49 @@
 
 namespace primitives {
 
+__device__ __inline__ point Point( scalar x, scalar y, scalar z ) {
+    return point{ x, y, z };
+}
+
 // TYPE_LIST
 CREATE_OBJECT_TYPE_DEFINITION( sphere,
                                {
                                    return norm3df( p.x - data->c.x, p.y - data->c.y, p.z - data->c.z ) - data->r;
                                },
                                {
-                                   point dp; dp.x = p.x - data->c.x; dp.y = p.y - data->c.y; dp.z = p.z - data->c.z; return mul_point( dp, rnorm3df( dp.x, dp.y, dp.z ) );
-                               } )
-
+                                   point dp; 
+                                   dp.x = p.x - data->c.x; 
+                                   dp.y = p.y - data->c.y; 
+                                   dp.z = p.z - data->c.z; 
+                                   return mul_point( dp, rnorm3df( dp.x, dp.y, dp.z ) );
+                               } );
+CREATE_OBJECT_TYPE_DEFINITION( cube,
+                               {
+                                   point q;
+                                   q.x = fabsf( p.x - data->c.x ) - data->b.x;
+                                   q.y = fabsf( p.y - data->c.y ) - data->b.y;
+                                   q.z = fabsf( p.z - data->c.z ) - data->b.z;
+                                   return
+                                       norm3df( max( q.x, 0.f ), max( q.y, 0.f ), max( q.z, 0.f ) ) +
+                                       min( 0.f, max( q.x, max( q.y, q.z ) ) );
+                               },
+                               {
+                                   point q;
+                                   q.x = ( p.x - data->c.x ) / data->b.x;
+                                   q.y = ( p.y - data->c.y ) / data->b.y;
+                                   q.z = ( p.z - data->c.z ) / data->b.z;
+                                   if ( fabsf( q.x ) > fabsf( q.y ) ) {
+                                       if ( fabsf( q.x ) > fabsf( q.z ) )
+                                           return Point( signbit( q.x ) ? -1.f : 1.f, 0.f, 0.f );
+                                       else
+                                           return Point( 0.f, 0.f, signbit( q.z ) ? -1.f : 1.f );
+                                   } else {
+                                       if ( fabsf( q.y ) > fabsf( q.z ) )
+                                           return Point( 0.f, signbit( q.y ) ? -1.f : 1.f, 0.f );
+                                       else
+                                           return Point( 0.f, 0.f, signbit( q.z ) ? -1.f : 1.f );
+                                   }
+                               } );
 };
 
 namespace raymarching {
@@ -42,15 +76,19 @@ static dim3 grid( size_t X, size_t Y, size_t Z ) {
     return dim3( ( X - 1 ) / RAYS_BLOCK_3D_x + 1, ( Y - 1 ) / RAYS_BLOCK_3D_y + 1, ( Z - 1 ) / RAYS_BLOCK_3D_z + 1 );
 }
 
-static __device__ __inline__ point mul_point( const point& p, const scalar& s ) {
+static __device__ __inline__ point mul_point( const point &p, const scalar &s ) {
     return point{ s * p.x, s * p.y, s * p.z };
 }
 
-static __device__ __inline__ point add_point( const point& p1, const point& p2 ) {
+static __device__ __inline__ point add_point( const point &p1, const point &p2 ) {
     return point{ p1.x + p2.x, p1.y + p2.y, p1.z + p2.z };
 }
 
-static __global__ void kernelStart( start_init_rays_info KERNEL_PTR Info, ray KERNEL_PTR Rays ) {
+static __device__ __inline__ scalar dot( const point &p1, const point &p2 ) {
+    return p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
+}
+
+static __global__ void kernelLoad( start_init_rays_info KERNEL_PTR Info, ray KERNEL_PTR Rays ) {
     int64_t
         x = RAYS_COORD_nD(x,2),
         y = RAYS_COORD_nD(y,2);
@@ -69,43 +107,40 @@ static __global__ void kernelStart( start_init_rays_info KERNEL_PTR Info, ray KE
         scalar R_1 = rnorm3df( pos.x, pos.y, pos.z );
 
         ray *self = Rays + y * Info->Width + x;
-        self->d = Info->StartDir;//mul_point( pos, R_1 );
+        self->d =
+            Info->StartDir;
+            //mul_point( pos, R_1 );
         self->p = add_point( pos, Info->StartPos );
     }
 }
 
-int Start( point &LightSource, std::list< primitives::base_ptr > &Primitives, const size_t &width, const size_t &height, const cudaSurfaceObject_t &surface, cudaStream_t stream ) {
+int Init( size_t width, size_t height, size_t count, const cudaSurfaceObject_t &surface ) {
     Width = width;
     Height = height;
     Surface_d = surface;
+    PrimitivesNum = count;
 
-    cudaMalloc( &LightSource_d, sizeof point );
-    cudaMemcpyAsync( LightSource_d, &LightSource, sizeof point, cudaMemcpyHostToDevice, stream );
+    CUDA_ERROR( cudaMalloc( &LightSource_d, sizeof point ) );
+    CUDA_ERROR( cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::base ));
+    CUDA_ERROR( cudaMalloc( &Rays_d, Width * Height * sizeof ray ));
+    CUDA_ERROR( cudaMalloc( &Info_d, sizeof start_init_rays_info ));
+    return 1;
+}
 
-    PrimitivesNum = Primitives.size();
+int Load( point &LightSource, std::list< primitives::base_ptr > &Primitives, start_init_rays_info &Info, cudaStream_t stream ) {
+
+    CUDA_ERROR( cudaMemcpyAsync( LightSource_d, &LightSource, sizeof point, cudaMemcpyHostToDevice, stream ) );
+
     size_t i = 0;
-    cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::base );
     for ( primitives::base_ptr ptr : Primitives ) {
-        //ptr = primitives::sphere::create( point{ 200.f, 0.f, 0.f }, 50.f );
-        cudaMemcpyAsync( Primitives_d + i, ptr, sizeof primitives::base, cudaMemcpyHostToDevice, stream );
+        CUDA_ERROR( cudaMemcpyAsync( Primitives_d + i, ptr, sizeof primitives::base, cudaMemcpyHostToDevice, stream ) );
         ++i;
     }
 
-    cudaMalloc( &Rays_d, Width * Height * sizeof ray );
+    CUDA_ERROR( cudaMemcpyAsync( Info_d, &Info, sizeof start_init_rays_info, cudaMemcpyHostToDevice, stream ) );
 
-    start_init_rays_info Info_h;
-    Info_h.Width = Width;
-    Info_h.Height = Height;
-    Info_h.Depth = 100; // max( Width, Height );
-    Info_h.StartPos = point{ 0.f, 0.f, 0.f };
-    Info_h.StartDir = point{ 1.f, 0.f, 0.f };
-    Info_h.StartWVec = point{ 0.f, -1.f, 0.f };
-    Info_h.StartHVec = point{ 0.f, 0.f, -1.f };
-    cudaMalloc( &Info_d, sizeof start_init_rays_info );
-    cudaMemcpyAsync( Info_d, &Info_h, sizeof start_init_rays_info, cudaMemcpyHostToDevice, stream );
-
-    kernelStart <<< grid( Width, Height ), block_2d, 0, stream >>> ( Info_d, Rays_d );
-    cudaStreamSynchronize( stream );
+    kernelLoad <<< grid( Width, Height ), block_2d, 0, stream >>> ( Info_d, Rays_d );
+    CUDA_ERROR( cudaStreamSynchronize( stream ) );
 
     return 1;
 }
@@ -120,23 +155,24 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
         point C = point{ 200.f, 0.f, 0.f };
         ray r = Rays[ y * width + x ];
 
-        primitives::base    curr_object;
-        size_t              curr_type;
+        primitives::base    curr_object, min_dist_object;
 
-        while ( ray_dist < RAYS_MAX_DIST ) {
+        while ( true ) {
             min_dist = RAYS_MAX_DIST;
 
             for ( size_t I = 0; I < PrimitivesNum; ++I ) {
                 curr_object = Primitives[ I ];
-                curr_type = curr_object.type;
 
-                switch ( curr_type ) { // TYPE_LIST
-                    CREATE_OBJECT_TYPE_PROCESSING( sphere )
+                switch ( curr_object.type ) { // TYPE_LIST
+                    CREATE_OBJECT_TYPE_PROCESSING( sphere, dist );
+                    CREATE_OBJECT_TYPE_PROCESSING( cube, dist );
                     curr_dist = RAYS_MAX_DIST;
                 }
 
-                if ( min_dist > curr_dist )
+                if ( min_dist > curr_dist ) {
                     min_dist = curr_dist;
+                    min_dist_object = curr_object;
+                }
             }
 
             r.p.x += min_dist * r.d.x;
@@ -144,13 +180,28 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
             r.p.z += min_dist * r.d.z;
 
             if ( min_dist < RAYS_MIN_DIST ) {
-                uchar3 COLOR = uchar3{ 0xff, 0xff, 0xff };
-                uchar4 PIXEL = RGB_PIXEL( COLOR );
+                curr_object = min_dist_object;
+                point curr_norm, light = *LightSource;
+                switch ( curr_object.type ) { // TYPE_LIST
+                    CREATE_OBJECT_TYPE_PROCESSING( sphere, norm );
+                    CREATE_OBJECT_TYPE_PROCESSING( cube, norm );
+                    curr_norm = point{ 0.f, 0.f, 0.f };
+                }
+
+                uint8_t LIGHT = 0xff * ( .5f * ( 1.f + dot( curr_norm, light ) ) );
+                uchar4 PIXEL = { LIGHT, LIGHT, LIGHT, 0xff };
                 surf2Dwrite( PIXEL, image, x * 4, y );
                 break;
             }
 
             ray_dist += min_dist;
+
+            if ( ray_dist > RAYS_MAX_DIST ) {
+                uchar3 COLOR = uchar3{ 0x00, 0x00, 0x00 };
+                uchar4 PIXEL = RGB_PIXEL( COLOR );
+                surf2Dwrite( PIXEL, image, x * 4, y );
+                break;
+            }
         }
     }
 }
@@ -158,7 +209,15 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
 bool ImageProcessing( size_t time, cudaStream_t stream ) {
     kernelImageProcessing <<< grid( Width, Height ), block_2d, 0, stream >>>
         ( Surface_d, Width, Height, time, Rays_d, LightSource_d, Primitives_d, PrimitivesNum );
-    cudaStreamSynchronize( stream );
+    CUDA_ERROR( cudaStreamSynchronize( stream ) );
+    return true;
+}
+
+bool Quit() {
+    cudaFree( Primitives_d );
+    cudaFree( LightSource_d );
+    cudaFree( Info_d );
+    cudaFree( Rays_d );
     return true;
 }
 

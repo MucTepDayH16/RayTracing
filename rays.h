@@ -67,7 +67,8 @@ typedef point( *norm_func )( byte*, const point& );
 
 enum object_type {
     type_none,
-    type_sphere
+    type_sphere,
+    type_cube
 };
 
 static __device__ __inline__ point mul_point( const point& p, const scalar& s ) {
@@ -92,6 +93,7 @@ typedef base* base_ptr;
 
 // TYPE_LIST
 CREATE_OBJECT_TYPE_DESCRIPTION( sphere, struct { point c; scalar r; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( cube, struct { point c; point b; } )
 
 };
 
@@ -103,7 +105,9 @@ typedef float3 point;
 typedef struct { point p, d; } ray;
 typedef struct { size_t Width, Height, Depth; point StartPos, StartDir, StartWVec, StartHVec; } start_init_rays_info;
 
-int Start( point &LightSource, std::list< primitives::base_ptr > &Primitives, const size_t &width, const size_t &height, const cudaSurfaceObject_t &surface, cudaStream_t stream = 0 );
+int Init( size_t, size_t, size_t, const cudaSurfaceObject_t& );
+int Load( point &LightSource, std::list< primitives::base_ptr > &Primitives, start_init_rays_info &Info, cudaStream_t stream = 0 );
 bool ImageProcessing( size_t, cudaStream_t stream = 0 );
+bool Quit();
 
 };

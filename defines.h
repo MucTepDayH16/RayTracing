@@ -2,11 +2,18 @@
 
 // CUDA
 #define CUDA_SET_GRID(c,n) ( c - 1 ) / Block##n##d.c + 1
+#ifdef _DEBUG
+#define CUDA_ERROR(__ERROR__) std::cout << (__ERROR__) << '\t'
+#else
+#define CUDA_ERROR(__ERROR__) __ERROR__
+#endif // DEBUG
+
 
 // PRIMITIVES
 #define CREATE_OBJECT_TYPE_DESCRIPTION(__TYPE__,__STRUCT__)                     \
-class __TYPE__ : public base {                                                  \
+class __TYPE__ {                                                                \
 protected:                                                                      \
+    typedef __STRUCT__ data_struct;                                             \
     template< typename ARG0, typename... ARGN >                                 \
     static __host__ base_ptr emplace( byte *data, ARG0 arg, ARGN... args ) {    \
         memcpy( data, &arg, sizeof ARG0 );                                      \
@@ -18,7 +25,6 @@ protected:                                                                      
         return nullptr;                                                         \
     }                                                                           \
 public:                                                                         \
-    typedef __STRUCT__ data_struct;                                             \
     static __host__ base_ptr create( data_struct& );                            \
     template< typename... ARGN >                                                \
     static __host__ base_ptr create_from( ARGN... args ) {                      \
@@ -45,9 +51,9 @@ __device__ point __TYPE__##::norm( byte *_data, const point &p ) {              
     __NORM__                                                                    \
 }
 
-#define CREATE_OBJECT_TYPE_PROCESSING(type)                                     \
+#define CREATE_OBJECT_TYPE_PROCESSING(type,func)                                \
 case primitives::type_##type:                                                   \
-    curr_dist = primitives::##type##::dist( curr_object.data, r.p );            \
+    curr_##func = primitives::##type##::##func##( curr_object.data, r.p );            \
     break;
 
 // RAYMARCHING
@@ -62,7 +68,7 @@ case primitives::type_##type:                                                   
 
 #define RAYS_COORD_nD(c,n) blockIdx.##c * RAYS_BLOCK_##n##D_##c + threadIdx.##c
 
-#define RAYS_MAX_DIST 100.f
+#define RAYS_MAX_DIST 10000.f
 #define RAYS_MIN_DIST .001f
 
 #define RAYS_MAX_LUM 1.f
