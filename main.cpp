@@ -3,7 +3,7 @@
 #include "rays.h"
 
 int main( int argc, char **argv ) {
-    size_t Width = 800, Height = 800;
+    size_t Width = 800, Height = 600;
 
     size_t CudaStreamNum = 10;
     cudaStream_t *stream = new cudaStream_t[ CudaStreamNum ];
@@ -124,7 +124,7 @@ int main( int argc, char **argv ) {
         }
 
         InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
-        InfoH.StartWVec = float3{ scale * sin_phi, -scale * scale * cos_phi, 0.f };
+        InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
         InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
 
         // Render Scene

@@ -71,8 +71,8 @@ case primitives::type_##type:                                                   
 #define RAYS_MAX_DIST 10000.f
 #define RAYS_MIN_DIST .001f
 
-#define RAYS_MAX_LUM 1.f
-#define RAYS_MIN_LUM .1f
+#define RAYS_MAX_LUM .9f
+#define RAYS_MIN_LUM .0f
 
 #define KERNEL_PTR *__restrict__
 

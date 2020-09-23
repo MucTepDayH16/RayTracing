@@ -188,7 +188,7 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
                     curr_norm = point{ 0.f, 0.f, 0.f };
                 }
 
-                uint8_t LIGHT = 0xff * ( .5f * ( 1.f + dot( curr_norm, light ) ) );
+                uint8_t LIGHT = 0xff * ( RAYS_MIN_LUM + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + dot( curr_norm, light ) ) );
                 uchar4 PIXEL = { LIGHT, LIGHT, LIGHT, 0xff };
                 surf2Dwrite( PIXEL, image, x * 4, y );
                 break;
