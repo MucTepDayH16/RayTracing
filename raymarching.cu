@@ -8,44 +8,42 @@ __device__ __inline__ point Point( scalar x, scalar y, scalar z ) {
 }
 
 // TYPE_LIST
-CREATE_OBJECT_TYPE_DEFINITION( sphere,
-                               {
-                                   return norm3df( p.x - data->c.x, p.y - data->c.y, p.z - data->c.z ) - data->r;
-                               },
-                               {
-                                   point dp; 
-                                   dp.x = p.x - data->c.x; 
-                                   dp.y = p.y - data->c.y; 
-                                   dp.z = p.z - data->c.z; 
-                                   return mul_point( dp, rnorm3df( dp.x, dp.y, dp.z ) );
-                               } );
-CREATE_OBJECT_TYPE_DEFINITION( cube,
-                               {
-                                   point q;
-                                   q.x = fabsf( p.x - data->c.x ) - data->b.x;
-                                   q.y = fabsf( p.y - data->c.y ) - data->b.y;
-                                   q.z = fabsf( p.z - data->c.z ) - data->b.z;
-                                   return
-                                       norm3df( max( q.x, 0.f ), max( q.y, 0.f ), max( q.z, 0.f ) ) +
-                                       min( 0.f, max( q.x, max( q.y, q.z ) ) );
-                               },
-                               {
-                                   point q;
-                                   q.x = ( p.x - data->c.x ) / data->b.x;
-                                   q.y = ( p.y - data->c.y ) / data->b.y;
-                                   q.z = ( p.z - data->c.z ) / data->b.z;
-                                   if ( fabsf( q.x ) > fabsf( q.y ) ) {
-                                       if ( fabsf( q.x ) > fabsf( q.z ) )
-                                           return Point( signbit( q.x ) ? -1.f : 1.f, 0.f, 0.f );
-                                       else
-                                           return Point( 0.f, 0.f, signbit( q.z ) ? -1.f : 1.f );
-                                   } else {
-                                       if ( fabsf( q.y ) > fabsf( q.z ) )
-                                           return Point( 0.f, signbit( q.y ) ? -1.f : 1.f, 0.f );
-                                       else
-                                           return Point( 0.f, 0.f, signbit( q.z ) ? -1.f : 1.f );
-                                   }
-                               } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    sphere,
+    {
+        return norm3df( p.x - data->c.x, p.y - data->c.y, p.z - data->c.z ) - data->r;
+    },
+    {
+        point dp; 
+        dp.x = p.x - data->c.x; 
+        dp.y = p.y - data->c.y; 
+        dp.z = p.z - data->c.z; 
+        return dp;
+    } );
+CREATE_OBJECT_TYPE_DEFINITION( 
+    cube,
+    {
+        point q;
+        q.x = fabsf( p.x - data->c.x ) - data->b.x;
+        q.y = fabsf( p.y - data->c.y ) - data->b.y;
+        q.z = fabsf( p.z - data->c.z ) - data->b.z;
+        if ( q.x < 0.f && q.y < 0.f && q.z < 0.f )
+            return max( q.x, max( q.y, q.z ) );
+        else
+            return norm3df( max( q.x, 0.f ), max( q.y, 0.f ), max( q.z, 0.f ) );
+    },
+    {
+        point q;
+        q.x = fabsf( p.x - data->c.x ) - data->b.x;
+        q.y = fabsf( p.y - data->c.y ) - data->b.y;
+        q.z = fabsf( p.z - data->c.z ) - data->b.z;
+        scalar qR_1 = rnorm3df( max( q.x, 0.f ), max( q.y, 0.f ), max( q.z, 0.f ) );
+        if ( q.x < 0.f && q.y < 0.f && q.z < 0.f )
+            return q.x > q.z ? ( q.x > q.y ? Point( p.x >= data->c.x ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z >= data->c.z ? 1.f : -1.f ) );
+        else
+            return q.x > q.z ? ( q.x > q.y ? Point( p.x >= data->c.x ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z >= data->c.z ? 1.f : -1.f ) );
+            //Point( q.x > 0.f ? ( p.x >= data->c.x ? 1.f : -1.f ) : 0.f, q.y > 0.f ? ( p.y >= data->c.y ? 1.f : -1.f ) : 0.f, q.z > 0.f ? ( p.z >= data->c.z ? 1.f : -1.f ) : 0.f );
+    } );
 };
 
 namespace raymarching {
@@ -100,16 +98,21 @@ static __global__ void kernelLoad( start_init_rays_info KERNEL_PTR Info, ray KER
             Z = Info->Depth;
 
         point pos;
-        pos.x = X * Info->StartWVec.x + Y * Info->StartHVec.x + Z * Info->StartDir.x;
-        pos.y = X * Info->StartWVec.y + Y * Info->StartHVec.y + Z * Info->StartDir.y;
-        pos.z = X * Info->StartWVec.z + Y * Info->StartHVec.z + Z * Info->StartDir.z;
+        pos.x = X * Info->StartWVec.x + Y * Info->StartHVec.x;
+        pos.y = X * Info->StartWVec.y + Y * Info->StartHVec.y;
+        pos.z = X * Info->StartWVec.z + Y * Info->StartHVec.z;
 
-        scalar R_1 = rnorm3df( pos.x, pos.y, pos.z );
+        point delta_pos;
+        delta_pos.x = Z * Info->StartDir.x;
+        delta_pos.y = Z * Info->StartDir.y;
+        delta_pos.z = Z * Info->StartDir.z;
+
+        scalar R_1 = rnorm3df( pos.x + delta_pos.x, pos.y + delta_pos.y, pos.z + delta_pos.z );
 
         ray *self = Rays + y * Info->Width + x;
         self->d =
-            Info->StartDir;
-            //mul_point( pos, R_1 );
+            //Info->StartDir;
+            mul_point( add_point( pos, delta_pos ), R_1 );
         self->p = add_point( pos, Info->StartPos );
     }
 }
@@ -152,7 +155,6 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
     if ( x < width && y < height ) {
         size_t I;
         scalar min_dist, curr_dist, ray_dist = 0, R = 50.f;
-        point C = point{ 200.f, 0.f, 0.f };
         ray r = Rays[ y * width + x ];
 
         primitives::base    curr_object, min_dist_object;
@@ -182,13 +184,19 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
             if ( min_dist < RAYS_MIN_DIST ) {
                 curr_object = min_dist_object;
                 point curr_norm, light = *LightSource;
-                switch ( curr_object.type ) { // TYPE_LIST
+                if ( min_dist < 0.f ) {
+                    curr_norm.x = -r.d.x;
+                    curr_norm.y = -r.d.y;
+                    curr_norm.z = -r.d.z;
+                } else switch ( curr_object.type ) { // TYPE_LIST
                     CREATE_OBJECT_TYPE_PROCESSING( sphere, norm );
                     CREATE_OBJECT_TYPE_PROCESSING( cube, norm );
                     curr_norm = point{ 0.f, 0.f, 0.f };
                 }
 
-                uint8_t LIGHT = 0xff * ( RAYS_MIN_LUM + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + dot( curr_norm, light ) ) );
+                scalar R_1 = rnorm3df( curr_norm.x, curr_norm.y, curr_norm.z );
+
+                uint8_t LIGHT = 0xff * ( RAYS_MIN_LUM + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + R_1 * dot( curr_norm, light ) ) );
                 uchar4 PIXEL = { LIGHT, LIGHT, LIGHT, 0xff };
                 surf2Dwrite( PIXEL, image, x * 4, y );
                 break;

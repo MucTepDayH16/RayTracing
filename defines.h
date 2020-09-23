@@ -69,7 +69,7 @@ case primitives::type_##type:                                                   
 #define RAYS_COORD_nD(c,n) blockIdx.##c * RAYS_BLOCK_##n##D_##c + threadIdx.##c
 
 #define RAYS_MAX_DIST 10000.f
-#define RAYS_MIN_DIST .001f
+#define RAYS_MIN_DIST .1f
 
 #define RAYS_MAX_LUM .9f
 #define RAYS_MIN_LUM .0f
