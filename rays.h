@@ -66,9 +66,13 @@ typedef scalar( *dist_func )( byte*, const point& );
 typedef point( *norm_func )( byte*, const point& );
 
 enum object_type {
-    type_none,
+    type_none = 0x0000,
     type_sphere,
-    type_cube
+    type_cube,
+
+    type_unification = 0x0100,
+    type_intersection,
+    type_invertion
 };
 
 static __device__ __inline__ point mul_point( const point& p, const scalar& s ) {
@@ -84,7 +88,8 @@ union byte_cast {
 struct base {
     byte data[ base_size ];
     enum object_type type;
-    __device__ __host__ base( enum object_type _type = type_none ) : type( _type ) {}
+    bool shown;
+    __device__ __host__ base( bool _shown = false, enum object_type _type = type_none ) : type( _type ), shown( _shown ) {}
 };
 
 template <enum object_type> class object : public base {};
@@ -94,6 +99,10 @@ typedef base* base_ptr;
 // TYPE_LIST
 CREATE_OBJECT_TYPE_DESCRIPTION( sphere, struct { point c; scalar r; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( cube, struct { point c; point b; } )
+
+CREATE_OBJECT_TYPE_DESCRIPTION( unification, struct { int o1; int o2; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( intersection, struct { int o1; int o2; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( invertion, struct { int o; } )
 
 };
 

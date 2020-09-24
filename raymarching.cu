@@ -44,6 +44,67 @@ CREATE_OBJECT_TYPE_DEFINITION(
             return q.x > q.z ? ( q.x > q.y ? Point( p.x >= data->c.x ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z >= data->c.z ? 1.f : -1.f ) );
             //Point( q.x > 0.f ? ( p.x >= data->c.x ? 1.f : -1.f ) : 0.f, q.y > 0.f ? ( p.y >= data->c.y ? 1.f : -1.f ) : 0.f, q.z > 0.f ? ( p.z >= data->c.z ? 1.f : -1.f ) : 0.f );
     } );
+
+CREATE_OBJECT_TYPE_DEFINITION(
+    unification,
+    {
+        base_ptr self = ( base_ptr ) data; base_ptr o1 = self + data->o1; base_ptr o2 = self + data->o2;
+        scalar d1; scalar d2;
+
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d1, p, o1, RAYS_MAX_DIST, dist );
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d2, p, o2, RAYS_MAX_DIST, dist );
+
+        return min( d1, d2 );
+    },
+    {
+        base_ptr self = ( base_ptr ) data; base_ptr o1 = self + data->o1; base_ptr o2 = self + data->o2;
+        scalar d1; scalar d2;
+
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d1, p, o1, RAYS_MAX_DIST, dist );
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d2, p, o2, RAYS_MAX_DIST, dist );
+
+        base_ptr O = d1 < d2 ? o1 : o2;
+        point n;
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( n, p, O, Point( 0.f, 0.f, 0.f ), norm );
+        return n;
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    intersection,
+    {
+        base_ptr self = ( base_ptr ) data; base_ptr o1 = self + data->o1; base_ptr o2 = self + data->o2;
+        scalar d1; scalar d2;
+
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d1, p, o1, RAYS_MAX_DIST, dist );
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d2, p, o2, RAYS_MAX_DIST, dist );
+
+        return max( d1, d2 );
+    },
+    {
+        base_ptr self = ( base_ptr ) data; base_ptr o1 = self + data->o1; base_ptr o2 = self + data->o2;
+        scalar d1; scalar d2;
+
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d1, p, o1, RAYS_MAX_DIST, dist );
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d2, p, o2, RAYS_MAX_DIST, dist );
+
+        base_ptr O = d1 > d2 ? o1 : o2;
+        point n;
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( n, p, O, Point( 0.f, 0.f, 0.f ), norm );
+        return n;
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    invertion,
+    {
+        base_ptr O = ( base_ptr ) data + data->o;
+        scalar D;
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( D, p, O, RAYS_MAX_DIST, dist );
+        return -D;
+    },
+    {
+        base_ptr O = ( base_ptr ) data + data->o;
+        point N;
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING( N, p, O, Point( 0.f, 0.f, 0.f ), norm );
+        return Point( -N.x, -N.y, -N.z );
+    } );
 };
 
 namespace raymarching {
@@ -150,30 +211,36 @@ int Load( point &LightSource, std::list< primitives::base_ptr > &Primitives, sta
 
 static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t width, size_t height, size_t time, ray KERNEL_PTR Rays, point KERNEL_PTR LightSource, primitives::base KERNEL_PTR Primitives, size_t PrimitivesNum ) {
     size_t  x = RAYS_COORD_nD( x, 2 ),
-            y = RAYS_COORD_nD( y, 2 );
+            y = RAYS_COORD_nD( y, 2 ),
+            id = threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x;
+
+    __shared__ primitives::base prim[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y ];
+    
+    if ( id < PrimitivesNum ) {
+        prim[ id ] = Primitives[ id ];
+    }
 
     if ( x < width && y < height ) {
-        size_t I;
-        scalar min_dist, curr_dist, ray_dist = 0, R = 50.f;
+        size_t min_dist_object;
+        scalar min_dist, curr_dist, ray_dist = 0;
         ray r = Rays[ y * width + x ];
 
-        primitives::base    curr_object, min_dist_object;
+        primitives::base_ptr    curr_ptr;
 
         while ( true ) {
             min_dist = RAYS_MAX_DIST;
+            min_dist_object = 0;
 
             for ( size_t I = 0; I < PrimitivesNum; ++I ) {
-                curr_object = Primitives[ I ];
+                curr_ptr = prim + I;
 
-                switch ( curr_object.type ) { // TYPE_LIST
-                    CREATE_OBJECT_TYPE_PROCESSING( sphere, dist );
-                    CREATE_OBJECT_TYPE_PROCESSING( cube, dist );
-                    curr_dist = RAYS_MAX_DIST;
-                }
+                if ( !curr_ptr->shown ) continue;
+
+                CREATE_OBJECT_TYPE_PROCESSING_LISTING( curr_dist, r.p, curr_ptr, RAYS_MAX_DIST, dist );
 
                 if ( min_dist > curr_dist ) {
                     min_dist = curr_dist;
-                    min_dist_object = curr_object;
+                    min_dist_object = I;
                 }
             }
 
@@ -182,17 +249,13 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
             r.p.z += min_dist * r.d.z;
 
             if ( min_dist < RAYS_MIN_DIST ) {
-                curr_object = min_dist_object;
+                curr_ptr = prim + min_dist_object;
                 point curr_norm, light = *LightSource;
                 if ( min_dist < 0.f ) {
                     curr_norm.x = -r.d.x;
                     curr_norm.y = -r.d.y;
                     curr_norm.z = -r.d.z;
-                } else switch ( curr_object.type ) { // TYPE_LIST
-                    CREATE_OBJECT_TYPE_PROCESSING( sphere, norm );
-                    CREATE_OBJECT_TYPE_PROCESSING( cube, norm );
-                    curr_norm = point{ 0.f, 0.f, 0.f };
-                }
+                } else CREATE_OBJECT_TYPE_PROCESSING_LISTING( curr_norm, r.p, curr_ptr, r.d, norm );
 
                 scalar R_1 = rnorm3df( curr_norm.x, curr_norm.y, curr_norm.z );
 

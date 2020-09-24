@@ -4,7 +4,7 @@
 #include "rays.h"
 
 int main( int argc, char **argv ) {
-    size_t Width = 800, Height = 600;
+    size_t Width = 1366, Height = 768;
 
     size_t CudaStreamNum = 10;
     cudaStream_t *stream = new cudaStream_t[ CudaStreamNum ];
@@ -54,15 +54,12 @@ int main( int argc, char **argv ) {
 
     std::list< primitives::base_ptr > PrimitivesH;
     {
-        PrimitivesH.push_back( primitives::cube::create_from( float3{ 500.f, 0.f, 0.f }, float3{ 50.f, 50.f, 50.f } ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 100.f, 0.f }, 40.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 200.f, 0.f }, 30.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 300.f, 0.f }, 20.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 400.f, 0.f }, 10.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, -100.f, 0.f }, 40.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, -200.f, 0.f }, 30.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, -300.f, 0.f }, 20.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, -400.f, 0.f }, 10.f ) );
+        PrimitivesH.push_back( primitives::intersection::create_from( true, 1, 2 ) );
+        PrimitivesH.push_back( primitives::cube::create_from( false, float3{ 500.f, 0.f, 0.f }, float3{ 50.f, 50.f, 50.f } ) );
+        PrimitivesH.push_back( primitives::invertion::create_from( false, 1 ) );
+        PrimitivesH.push_back( primitives::unification::create_from( false, 1, 2 ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( false, float3{ 500.f, 50.f, 0.f }, 60.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( false, float3{ 500.f, -50.f, 0.f }, 40.f ) );
     }
 
     raymarching::start_init_rays_info InfoH;
@@ -74,12 +71,12 @@ int main( int argc, char **argv ) {
     InfoH.StartWVec = float3{ 0.f, -1.f, 0.f };
     InfoH.StartHVec = float3{ 0.f, 0.f, -1.f };
 
-    SDL_Point currMouse, prevMouse;
+    SDL_Point currMouse{ 0, 0 }, prevMouse;
 
     raymarching::Init( Width, Height, PrimitivesH.size(), SurfD );
     std::cout << std::endl;
 
-    float cuda_time = 0.f, step = 20.f, fps;
+    float cuda_time = 0.f, step = 20.f, fps = INFINITY;
     float scale = 1.f, theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
     float cos_1 = cosf( M_PI / 180.f ), sin_1 = sinf( M_PI / 180.f ), deg = M_PI / 360.f;
     bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false;
@@ -87,7 +84,7 @@ int main( int argc, char **argv ) {
 
     for ( size_t run = true, this_time = SDL_GetTicks(), prev_time = this_time;
           run;
-          prev_time = this_time, this_time = SDL_GetTicks(), fps = this_time == prev_time ? NAN : 1000.f / ( this_time - prev_time ) ) {
+          prev_time = this_time, this_time = SDL_GetTicks(), fps = 1000.f / ( this_time - prev_time ) ) {
         // Event polling
         while ( SDL_PollEvent( &Event ) ) {
             switch ( Event.type ) {
@@ -174,6 +171,12 @@ int main( int argc, char **argv ) {
             }
         }
 
+        LightingSourceH = float3{
+            cos_1 * LightingSourceH.x - sin_1 * LightingSourceH.y,
+            sin_1 * LightingSourceH.x + cos_1 * LightingSourceH.y,
+            LightingSourceH.z
+        };
+
         InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
         InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
         InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
@@ -189,7 +192,7 @@ int main( int argc, char **argv ) {
         raymarching::ImageProcessing( ( 256 * this_time ) / 1000, stream[ 0 ] );
         cudaEventRecord( end, stream[ 0 ] );
         cudaStreamSynchronize( stream[ 0 ] );
-        CUDA_ERROR( cudaEventElapsedTime( &cuda_time, start, end ) );
+        cudaEventElapsedTime( &cuda_time, start, end );
 
         // Draw Scene
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -208,7 +211,9 @@ int main( int argc, char **argv ) {
 
         // Scene update
         SDL_GL_SwapWindow( Win );
-        std::cout << "Task execution percantage : " << cuda_time * fps / 10.f << std::endl;
+#ifndef _DEBUG
+        std::cout << "Frame per second : " << size_t( fps ) << "\t\tTask execution percantage : " << cuda_time * fps / 10.f << std::endl;
+#endif
     }
 
 
