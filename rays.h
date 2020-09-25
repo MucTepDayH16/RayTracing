@@ -56,8 +56,6 @@ cudaStream_t Stream( size_t );
 
 namespace primitives {
 
-static const size_t base_size = 24;
-
 typedef unsigned char byte;
 typedef float scalar;
 typedef float3 point;
@@ -88,13 +86,13 @@ union byte_cast {
     byte source[ sizeof __TYPE__ ];
 };
 
+static const size_t base_payload_size = 24;
 struct base {
-    byte data[ base_size ];
-    uint16_t type;
+    byte data[ base_payload_size ];
     dist_func dist;
     norm_func norm;
-    bool shown;
-    __device__ __host__ base( uint16_t _type = type_none ) : type( _type ), dist( nullptr ), norm( nullptr ) {}
+    enum object_type type;
+    __device__ __host__ base( enum object_type _type = type_none ) : type( _type ), dist( nullptr ), norm( nullptr ) {}
 };
 
 // TYPE_LIST

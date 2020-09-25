@@ -52,8 +52,6 @@ int main( int argc, char **argv ) {
 
     float3 LightingSourceH = float3{ 2.f * M_SQRT1_5, 0.f, M_SQRT1_5 };
 
-    std::cout << sizeof primitives::base << std::endl;
-
     std::list< primitives::base_ptr > PrimitivesH;
     {
         PrimitivesH.push_back( primitives::intersection::create_from( 1, 2 ) );
