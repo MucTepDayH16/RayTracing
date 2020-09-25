@@ -48,61 +48,43 @@ CREATE_OBJECT_TYPE_DEFINITION(
 CREATE_OBJECT_TYPE_DEFINITION(
     unification,
     {
-        base_ptr self = ( base_ptr ) data; base_ptr o1 = self + data->o1; base_ptr o2 = self + data->o2;
-        scalar d1; scalar d2;
-
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d1, p, o1, RAYS_MAX_DIST, dist );
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d2, p, o2, RAYS_MAX_DIST, dist );
-
+        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
+        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
         return min( d1, d2 );
     },
     {
-        base_ptr self = ( base_ptr ) data; base_ptr o1 = self + data->o1; base_ptr o2 = self + data->o2;
-        scalar d1; scalar d2;
-
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d1, p, o1, RAYS_MAX_DIST, dist );
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d2, p, o2, RAYS_MAX_DIST, dist );
+        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
+        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
 
         base_ptr O = d1 < d2 ? o1 : o2;
-        point n;
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( n, p, O, Point( 0.f, 0.f, 0.f ), norm );
+        point n = RAYS_NORM( O, p );
         return n;
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
     intersection,
     {
-        base_ptr self = ( base_ptr ) data; base_ptr o1 = self + data->o1; base_ptr o2 = self + data->o2;
-        scalar d1; scalar d2;
-
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d1, p, o1, RAYS_MAX_DIST, dist );
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d2, p, o2, RAYS_MAX_DIST, dist );
-
+        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
+        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
         return max( d1, d2 );
     },
     {
-        base_ptr self = ( base_ptr ) data; base_ptr o1 = self + data->o1; base_ptr o2 = self + data->o2;
-        scalar d1; scalar d2;
-
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d1, p, o1, RAYS_MAX_DIST, dist );
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( d2, p, o2, RAYS_MAX_DIST, dist );
+        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
+        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
 
         base_ptr O = d1 > d2 ? o1 : o2;
-        point n;
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( n, p, O, Point( 0.f, 0.f, 0.f ), norm );
+        point n = RAYS_NORM( O, p );
         return n;
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
     invertion,
     {
-        base_ptr O = ( base_ptr ) data + data->o;
-        scalar D;
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( D, p, O, RAYS_MAX_DIST, dist );
+        base_ptr O = obj + data->o;
+        scalar D = RAYS_DIST( O, p );
         return -D;
     },
     {
-        base_ptr O = ( base_ptr ) data + data->o;
-        point N;
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING( N, p, O, Point( 0.f, 0.f, 0.f ), norm );
+        base_ptr O = obj + data->o;
+        point N = RAYS_NORM( O, p );
         return Point( -N.x, -N.y, -N.z );
     } );
 };
@@ -214,60 +196,48 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
             y = RAYS_COORD_nD( y, 2 ),
             id = threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x;
 
-    __shared__ primitives::base prim[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y ];
-    
+    //primitives::base_ptr curr_ptr = Primitives;
+    __shared__ primitives::base curr_ptr[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y ];
     if ( id < PrimitivesNum ) {
-        prim[ id ] = Primitives[ id ];
+        primitives::base_ptr self = curr_ptr + id;
+        *self = Primitives[ id ];
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self );
     }
+    __syncthreads();
 
     if ( x < width && y < height ) {
-        size_t min_dist_object;
-        scalar min_dist, curr_dist, ray_dist = 0;
+        scalar curr_dist, ray_dist = 0;
         ray r = Rays[ y * width + x ];
 
-        primitives::base_ptr    curr_ptr;
+        for ( size_t I = 0; true; ++I ) {
+            curr_dist = RAYS_DIST( curr_ptr, r.p );
 
-        while ( true ) {
-            min_dist = RAYS_MAX_DIST;
-            min_dist_object = 0;
+            r.p.x += curr_dist * r.d.x;
+            r.p.y += curr_dist * r.d.y;
+            r.p.z += curr_dist * r.d.z;
 
-            for ( size_t I = 0; I < PrimitivesNum; ++I ) {
-                curr_ptr = prim + I;
-
-                if ( !curr_ptr->shown ) continue;
-
-                CREATE_OBJECT_TYPE_PROCESSING_LISTING( curr_dist, r.p, curr_ptr, RAYS_MAX_DIST, dist );
-
-                if ( min_dist > curr_dist ) {
-                    min_dist = curr_dist;
-                    min_dist_object = I;
-                }
-            }
-
-            r.p.x += min_dist * r.d.x;
-            r.p.y += min_dist * r.d.y;
-            r.p.z += min_dist * r.d.z;
-
-            if ( min_dist < RAYS_MIN_DIST ) {
-                curr_ptr = prim + min_dist_object;
+            if ( curr_dist < RAYS_MIN_DIST ) {
                 point curr_norm, light = *LightSource;
-                if ( min_dist < 0.f ) {
+                if ( curr_dist < 0.f ) {
                     curr_norm.x = -r.d.x;
                     curr_norm.y = -r.d.y;
                     curr_norm.z = -r.d.z;
-                } else CREATE_OBJECT_TYPE_PROCESSING_LISTING( curr_norm, r.p, curr_ptr, r.d, norm );
+                } else
+                    curr_norm = RAYS_NORM( curr_ptr, r.p );
 
-                scalar R_1 = rnorm3df( curr_norm.x, curr_norm.y, curr_norm.z );
+                if ( dot( curr_norm, r.d ) < 0.f ) {
+                    scalar R_1 = rnorm3df( curr_norm.x, curr_norm.y, curr_norm.z );
 
-                uint8_t LIGHT = 0xff * ( RAYS_MIN_LUM + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + R_1 * dot( curr_norm, light ) ) );
-                uchar4 PIXEL = { LIGHT, LIGHT, LIGHT, 0xff };
-                surf2Dwrite( PIXEL, image, x * 4, y );
-                break;
+                    uint8_t LIGHT = 0xff * ( RAYS_MIN_LUM + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + R_1 * dot( curr_norm, light ) ) );
+                    uchar4 PIXEL = { LIGHT, LIGHT, LIGHT, 0xff };
+                    surf2Dwrite( PIXEL, image, x * 4, y );
+                    break;
+                }
             }
 
-            ray_dist += min_dist;
+            ray_dist += curr_dist;
 
-            if ( ray_dist > RAYS_MAX_DIST ) {
+            if ( ray_dist > RAYS_MAX_DIST || I >= RAYS_MAX_COUNTER ) {
                 uchar3 COLOR = uchar3{ 0x00, 0x00, 0x00 };
                 uchar4 PIXEL = RGB_PIXEL( COLOR );
                 surf2Dwrite( PIXEL, image, x * 4, y );

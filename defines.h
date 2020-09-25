@@ -25,45 +25,49 @@ protected:                                                                      
         return nullptr;                                                             \
     }                                                                               \
 public:                                                                             \
-    static __host__ base_ptr create( bool, data_struct& );                          \
+    static __host__ base_ptr create( data_struct& );                                \
     template< typename... ARGN >                                                    \
-    static __host__ base_ptr create_from( bool _shown, ARGN... args ) {             \
+    static __host__ base_ptr create_from( ARGN... args ) {                          \
         data_struct NEW;                                                            \
         emplace( reinterpret_cast< byte* >( &NEW ), args... );                      \
-        return create( _shown, NEW );                                               \
+        return create( NEW );                                                       \
     }                                                                               \
-    static __device__ scalar dist( byte*, const point& p );                         \
-    static __device__ point norm( byte*, const point& p );                          \
+    static __device__ scalar dist( base_ptr, const point& p );                      \
+    static __device__ point norm( base_ptr, const point& p );                       \
 };
 
 #define CREATE_OBJECT_TYPE_DEFINITION(__TYPE__,__DIST__,__NORM__)                   \
-__host__ base_ptr __TYPE__##::create( bool _shown,__TYPE__##::data_struct &data ) { \
-    base_ptr NEW = new base( _shown, type_##__TYPE__ );                             \
+__host__ base_ptr __TYPE__##::create( __TYPE__##::data_struct &data ) {             \
+    base_ptr NEW = new base( type_##__TYPE__ );                                     \
     memcpy( NEW->data, &data, sizeof data_struct );                                 \
     return NEW;                                                                     \
 }                                                                                   \
-__device__ __inline__ scalar __TYPE__##::dist( byte *_data, const point &p ) {      \
-    data_struct *data = reinterpret_cast< data_struct* >( _data );                  \
+__device__ __inline__ scalar __TYPE__##::dist( base_ptr obj, const point &p ) {     \
+    data_struct *data = reinterpret_cast<data_struct*>( obj->data );                \
     __DIST__                                                                        \
 }                                                                                   \
-__device__ __inline__ point __TYPE__##::norm( byte *_data, const point &p ) {       \
-    data_struct *data = reinterpret_cast< data_struct* >( _data );                  \
+__device__ __inline__ point __TYPE__##::norm( base_ptr obj, const point &p ) {      \
+    data_struct *data = reinterpret_cast<data_struct*>( obj->data );                \
     __NORM__                                                                        \
 }
 
-#define CREATE_OBJECT_TYPE_PROCESSING(x,p,obj,type,func)                            \
-case primitives::type_##type:                                                       \
-    x = primitives::##type##::##func##( obj->data, p );                             \
+#define CREATE_OBJECT_TYPE_PROCESSING_2(__SELF__,__TYPE__)                          \
+case primitives::type_##__TYPE__:                                                   \
+    __SELF__->dist = primitives::##__TYPE__##::dist;                                \
+    __SELF__->norm = primitives::##__TYPE__##::norm;                                \
     break;
 
-#define CREATE_OBJECT_TYPE_PROCESSING_LISTING(x,p,obj,def,func)                     \
-switch ( obj->type ) {                                                              \
-CREATE_OBJECT_TYPE_PROCESSING( x, p, obj, sphere, func )                            \
-CREATE_OBJECT_TYPE_PROCESSING( x, p, obj, cube, func )                              \
-CREATE_OBJECT_TYPE_PROCESSING( x, p, obj, unification, func )                       \
-CREATE_OBJECT_TYPE_PROCESSING( x, p, obj, intersection, func )                      \
-CREATE_OBJECT_TYPE_PROCESSING( x, p, obj, invertion, func )                         \
-x = def; }
+#define CREATE_OBJECT_TYPE_PROCESSING_LISTING_2(__SELF__)                           \
+switch ( __SELF__->type ) {                                                         \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, sphere );                            \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, cube );                              \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, unification );                       \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, intersection );                      \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, invertion );                         \
+}
+
+#define RAYS_DIST(__SELF__,__POINT__) ((__SELF__)->dist ? ((__SELF__)->dist((__SELF__),(__POINT__))) : (RAYS_MAX_DIST))
+#define RAYS_NORM(__SELF__,__POINT__) ((__SELF__)->norm ? ((__SELF__)->norm((__SELF__),(__POINT__))) : point{ 0.f, 0.f, 0.f })
 
 
 // RAYMARCHING
@@ -77,6 +81,8 @@ x = def; }
 #define RAYS_BLOCK_3D_z 4
 
 #define RAYS_COORD_nD(c,n) blockIdx.##c * RAYS_BLOCK_##n##D_##c + threadIdx.##c
+
+#define RAYS_MAX_COUNTER 1000
 
 #define RAYS_MAX_DIST 10000.f
 #define RAYS_MIN_DIST .01f

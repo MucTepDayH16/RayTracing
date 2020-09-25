@@ -52,14 +52,16 @@ int main( int argc, char **argv ) {
 
     float3 LightingSourceH = float3{ 2.f * M_SQRT1_5, 0.f, M_SQRT1_5 };
 
+    std::cout << sizeof primitives::base << std::endl;
+
     std::list< primitives::base_ptr > PrimitivesH;
     {
-        PrimitivesH.push_back( primitives::intersection::create_from( true, 1, 2 ) );
-        PrimitivesH.push_back( primitives::cube::create_from( false, float3{ 500.f, 0.f, 0.f }, float3{ 50.f, 50.f, 50.f } ) );
-        PrimitivesH.push_back( primitives::invertion::create_from( false, 1 ) );
-        PrimitivesH.push_back( primitives::unification::create_from( false, 1, 2 ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( false, float3{ 500.f, 50.f, 0.f }, 60.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( false, float3{ 500.f, -50.f, 0.f }, 40.f ) );
+        PrimitivesH.push_back( primitives::intersection::create_from( 1, 2 ) );
+        PrimitivesH.push_back( primitives::cube::create_from( float3{ 500.f, 0.f, 0.f }, float3{ 50.f, 50.f, 50.f } ) );
+        PrimitivesH.push_back( primitives::invertion::create_from( 1 ) );
+        PrimitivesH.push_back( primitives::unification::create_from( 1, 2 ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 50.f, 0.f }, 60.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, -50.f, 0.f }, 40.f ) );
     }
 
     raymarching::start_init_rays_info InfoH;
@@ -77,7 +79,7 @@ int main( int argc, char **argv ) {
     std::cout << std::endl;
 
     float cuda_time = 0.f, step = 20.f, fps = INFINITY;
-    float scale = 1.f, theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
+    float scale = .25f, theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
     float cos_1 = cosf( M_PI / 180.f ), sin_1 = sinf( M_PI / 180.f ), deg = M_PI / 360.f;
     bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false;
 

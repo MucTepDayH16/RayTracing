@@ -62,8 +62,11 @@ typedef unsigned char byte;
 typedef float scalar;
 typedef float3 point;
 
-typedef scalar( *dist_func )( byte*, const point& );
-typedef point( *norm_func )( byte*, const point& );
+struct base;
+typedef base* base_ptr;
+
+typedef scalar( *dist_func )( base_ptr, const point& );
+typedef point( *norm_func )( base_ptr, const point& );
 
 enum object_type {
     type_none = 0x0000,
@@ -87,14 +90,12 @@ union byte_cast {
 
 struct base {
     byte data[ base_size ];
-    enum object_type type;
+    uint16_t type;
+    dist_func dist;
+    norm_func norm;
     bool shown;
-    __device__ __host__ base( bool _shown = false, enum object_type _type = type_none ) : type( _type ), shown( _shown ) {}
+    __device__ __host__ base( uint16_t _type = type_none ) : type( _type ), dist( nullptr ), norm( nullptr ) {}
 };
-
-template <enum object_type> class object : public base {};
-
-typedef base* base_ptr;
 
 // TYPE_LIST
 CREATE_OBJECT_TYPE_DESCRIPTION( sphere, struct { point c; scalar r; } )
