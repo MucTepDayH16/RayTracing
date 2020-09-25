@@ -73,7 +73,10 @@ enum object_type {
 
     type_unification = 0x0100,
     type_intersection,
-    type_invertion
+    type_invertion,
+
+    type_translation = 0x0200,
+    type_rotation
 };
 
 static __device__ __inline__ point mul_point( const point& p, const scalar& s ) {

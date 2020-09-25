@@ -32,8 +32,8 @@ public:                                                                         
         emplace( reinterpret_cast< byte* >( &NEW ), args... );                      \
         return create( NEW );                                                       \
     }                                                                               \
-    static __device__ scalar dist( base_ptr, const point& p );                      \
-    static __device__ point norm( base_ptr, const point& p );                       \
+    static __device__ __inline__ scalar dist( base_ptr, const point& p );           \
+    static __device__ __inline__ point norm( base_ptr, const point& p );            \
 };
 
 #define CREATE_OBJECT_TYPE_DEFINITION(__TYPE__,__DIST__,__NORM__)                   \

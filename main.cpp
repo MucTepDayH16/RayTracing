@@ -58,8 +58,8 @@ int main( int argc, char **argv ) {
         PrimitivesH.push_back( primitives::cube::create_from( float3{ 500.f, 0.f, 0.f }, float3{ 50.f, 50.f, 50.f } ) );
         PrimitivesH.push_back( primitives::invertion::create_from( 1 ) );
         PrimitivesH.push_back( primitives::unification::create_from( 1, 2 ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 50.f, 0.f }, 60.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, -50.f, 0.f }, 40.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 0.f, -50.f }, 60.f ) );
+        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 0.f, 50.f }, 40.f ) );
     }
 
     raymarching::start_init_rays_info InfoH;

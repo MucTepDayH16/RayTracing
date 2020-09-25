@@ -191,17 +191,23 @@ int Load( point &LightSource, std::list< primitives::base_ptr > &Primitives, sta
     return 1;
 }
 
+#define PRIMITIVES_PER_THREAD 2
+
 static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t width, size_t height, size_t time, ray KERNEL_PTR Rays, point KERNEL_PTR LightSource, primitives::base KERNEL_PTR Primitives, size_t PrimitivesNum ) {
     size_t  x = RAYS_COORD_nD( x, 2 ),
             y = RAYS_COORD_nD( y, 2 ),
-            id = threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x;
+            id = PRIMITIVES_PER_THREAD * ( threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x );
 
-    //primitives::base_ptr curr_ptr = Primitives;
-    __shared__ primitives::base curr_ptr[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y ];
+    // RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * PRIMITIVES_PER_THREAD >= PrimitivesNum
+    __shared__ primitives::base curr_ptr[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * PRIMITIVES_PER_THREAD ];
     if ( id < PrimitivesNum ) {
         primitives::base_ptr self = curr_ptr + id;
-        *self = Primitives[ id ];
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self );
+
+#pragma unroll
+        for ( uint16_t i = 0; i < PRIMITIVES_PER_THREAD; ++i, ++self ) {
+            *self = Primitives[ id + i ];
+            CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self );
+        }
     }
     __syncthreads();
 
