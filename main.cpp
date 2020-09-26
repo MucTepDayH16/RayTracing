@@ -1,5 +1,7 @@
 #define _USE_MATH_DEFINES
-#define M_SQRT1_5 .44721359549995793928183473374626f
+
+constexpr float M_SQRT1_5f{ .447213595499957939281f };
+constexpr float M_PI_2f{ 1.57079632679489661923f };
 
 #include "rays.h"
 
@@ -50,16 +52,22 @@ int main( int argc, char **argv ) {
     cudaEventCreate( &end );
 
 
-    float3 LightingSourceH = float3{ 2.f * M_SQRT1_5, 0.f, M_SQRT1_5 };
+    float3 LightingSourceH = float3{ 2.f * M_SQRT1_5f, 0.f, M_SQRT1_5f };
 
     std::list< primitives::base_ptr > PrimitivesH;
     {
-        PrimitivesH.push_back( primitives::intersection::create_from( 1, 2 ) );
-        PrimitivesH.push_back( primitives::cube::create_from( float3{ 500.f, 0.f, 0.f }, float3{ 50.f, 50.f, 50.f } ) );
-        PrimitivesH.push_back( primitives::invertion::create_from( 1 ) );
-        PrimitivesH.push_back( primitives::unification::create_from( 1, 2 ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 0.f, -50.f }, 60.f ) );
-        PrimitivesH.push_back( primitives::sphere::create_from( float3{ 500.f, 0.f, 50.f }, 40.f ) );
+        PrimitivesH.push_back( primitives::translation::create_from( 1, 100.f, 0.f, 0.f )                                           );
+        float theta = M_PI_4;
+        PrimitivesH.push_back( primitives::rotationQ::create_from( 1, cosf( theta / 2.f ), sinf( theta / 2.f ), 0.f, 0.f )          );
+        PrimitivesH.push_back( primitives::intersection::create_from( 1, 3 )                                                        );
+        PrimitivesH.push_back( primitives::translation::create_from( 1, 0.f, 0.f, 0.f )                                             );
+        PrimitivesH.push_back( primitives::cube::create_from( 50.f, 50.f, 50.f )                                                    );
+        PrimitivesH.push_back( primitives::invertion::create_from( 1 )                                                              );
+        PrimitivesH.push_back( primitives::unification::create_from( 1, 3 )                                                         );
+        PrimitivesH.push_back( primitives::translation::create_from( 1, 0.f, 0.f, -50.f )                                           );
+        PrimitivesH.push_back( primitives::sphere::create_from( 60.f )                                                              );
+        PrimitivesH.push_back( primitives::translation::create_from( 1, 0.f, 0.f, 50.f )                                            );
+        PrimitivesH.push_back( primitives::sphere::create_from( 40.f )                                                              );
     }
 
     raymarching::start_init_rays_info InfoH;
@@ -80,6 +88,10 @@ int main( int argc, char **argv ) {
     float scale = .25f, theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
     float cos_1 = cosf( M_PI / 180.f ), sin_1 = sinf( M_PI / 180.f ), deg = M_PI / 360.f;
     bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false;
+
+    InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
+    InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
+    InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
 
 
     for ( size_t run = true, this_time = SDL_GetTicks(), prev_time = this_time;
@@ -140,6 +152,11 @@ int main( int argc, char **argv ) {
                 break;
             case SDL_MOUSEWHEEL:
                 scale *= powf( 2.f, float( Event.wheel.y ) * .1f );
+
+                InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
+                InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
+                InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
+
                 break;
             case SDL_MOUSEMOTION:
                 prevMouse = currMouse;
@@ -155,10 +172,10 @@ int main( int argc, char **argv ) {
                     InfoH.StartPos.z -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.z / scale;
                 } else if ( RIGHT_BUTTON ) {
                     theta += ( currMouse.y - prevMouse.y ) * deg;
-                    if ( theta > M_PI_2 )
-                        theta = M_PI_2;
-                    else if ( theta < -M_PI_2 )
-                        theta = -M_PI_2;
+                    if ( theta > M_PI_2f )
+                        theta = M_PI_2f;
+                    else if ( theta < -M_PI_2f )
+                        theta = -M_PI_2f;
                     cos_theta = cosf( theta );
                     sin_theta = sinf( theta );
 
@@ -166,6 +183,10 @@ int main( int argc, char **argv ) {
                     cos_phi = cosf( phi );
                     sin_phi = sinf( phi );
                 }
+
+                InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
+                InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
+                InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
 
                 break;
             }
@@ -176,10 +197,6 @@ int main( int argc, char **argv ) {
             sin_1 * LightingSourceH.x + cos_1 * LightingSourceH.y,
             LightingSourceH.z
         };
-
-        InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
-        InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
-        InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
 
         //InfoH.StartPos = InfoH.StartDir;
         //InfoH.StartPos.x *= -InfoH.Depth;

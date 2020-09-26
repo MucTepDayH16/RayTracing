@@ -24,6 +24,5 @@
     <None Include=".gitignore">
       <Filter>git</Filter>
     </None>
-    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

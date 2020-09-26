@@ -11,22 +11,18 @@ __device__ __inline__ point Point( scalar x, scalar y, scalar z ) {
 CREATE_OBJECT_TYPE_DEFINITION(
     sphere,
     {
-        return norm3df( p.x - data->c.x, p.y - data->c.y, p.z - data->c.z ) - data->r;
+        return norm3df( p.x, p.y, p.z ) - data->r;
     },
     {
-        point dp; 
-        dp.x = p.x - data->c.x; 
-        dp.y = p.y - data->c.y; 
-        dp.z = p.z - data->c.z; 
-        return dp;
+        return p;
     } );
 CREATE_OBJECT_TYPE_DEFINITION( 
     cube,
     {
         point q;
-        q.x = fabsf( p.x - data->c.x ) - data->b.x;
-        q.y = fabsf( p.y - data->c.y ) - data->b.y;
-        q.z = fabsf( p.z - data->c.z ) - data->b.z;
+        q.x = fabsf( p.x ) - data->b.x;
+        q.y = fabsf( p.y ) - data->b.y;
+        q.z = fabsf( p.z ) - data->b.z;
         if ( q.x < 0.f && q.y < 0.f && q.z < 0.f )
             return max( q.x, max( q.y, q.z ) );
         else
@@ -34,14 +30,14 @@ CREATE_OBJECT_TYPE_DEFINITION(
     },
     {
         point q;
-        q.x = fabsf( p.x - data->c.x ) - data->b.x;
-        q.y = fabsf( p.y - data->c.y ) - data->b.y;
-        q.z = fabsf( p.z - data->c.z ) - data->b.z;
+        q.x = fabsf( p.x ) - data->b.x;
+        q.y = fabsf( p.y ) - data->b.y;
+        q.z = fabsf( p.z ) - data->b.z;
         scalar qR_1 = rnorm3df( max( q.x, 0.f ), max( q.y, 0.f ), max( q.z, 0.f ) );
         if ( q.x < 0.f && q.y < 0.f && q.z < 0.f )
-            return q.x > q.z ? ( q.x > q.y ? Point( p.x >= data->c.x ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z >= data->c.z ? 1.f : -1.f ) );
+            return q.x > q.z ? ( q.x > q.y ? Point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
         else
-            return q.x > q.z ? ( q.x > q.y ? Point( p.x >= data->c.x ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y >= data->c.y ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z >= data->c.z ? 1.f : -1.f ) );
+            return q.x > q.z ? ( q.x > q.y ? Point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
             //Point( q.x > 0.f ? ( p.x >= data->c.x ? 1.f : -1.f ) : 0.f, q.y > 0.f ? ( p.y >= data->c.y ? 1.f : -1.f ) : 0.f, q.z > 0.f ? ( p.z >= data->c.z ? 1.f : -1.f ) : 0.f );
     } );
 
@@ -86,6 +82,162 @@ CREATE_OBJECT_TYPE_DEFINITION(
         base_ptr O = obj + data->o;
         point N = RAYS_NORM( O, p );
         return Point( -N.x, -N.y, -N.z );
+    } );
+
+CREATE_OBJECT_TYPE_DEFINITION(
+    translation,
+    {
+        base_ptr O = obj + data->o;
+        point P;
+        P.x = p.x - data->t.x;
+        P.y = p.y - data->t.y;
+        P.z = p.z - data->t.z;
+        return RAYS_DIST( O, P );
+    },
+    {
+        base_ptr O = obj + data->o;
+        point P;
+        P.x = p.x - data->t.x;
+        P.y = p.y - data->t.y;
+        P.z = p.z - data->t.z;
+        return RAYS_NORM( O, P );
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    rotationX,
+    {
+        base_ptr O = obj + data->o;
+        point P;
+        P.y = data->cos_phi * p.y + data->sin_phi * p.z;
+        P.z = -data->sin_phi * p.y + data->cos_phi * p.z;
+        P.x = p.x;
+        return RAYS_DIST( O, P );
+    },
+    {
+        base_ptr O = obj + data->o;
+        point P; point _P;
+        P.y = data->cos_phi * p.y + data->sin_phi * p.z;
+        P.z = -data->sin_phi * p.y + data->cos_phi * p.z;
+        P.x = p.x;
+        _P = RAYS_NORM( O, P );
+        P.y = data->cos_phi * _P.y - data->sin_phi * _P.z;
+        P.z = data->sin_phi * _P.y + data->cos_phi * _P.z;
+        P.x = _P.x;
+        return P;
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    rotationY,
+    {
+        base_ptr O = obj + data->o;
+        point P;
+        P.z = data->cos_phi * p.z + data->sin_phi * p.x;
+        P.x = -data->sin_phi * p.z + data->cos_phi * p.x;
+        P.y = p.y;
+        return RAYS_DIST( O, P );
+    },
+    {
+        base_ptr O = obj + data->o;
+        point P; point _P;
+        P.z = data->cos_phi * p.z + data->sin_phi * p.x;
+        P.x = -data->sin_phi * p.z + data->cos_phi * p.x;
+        P.y = p.y;
+        _P = RAYS_NORM( O, P );
+        P.z = data->cos_phi * _P.z - data->sin_phi * _P.x;
+        P.x = data->sin_phi * _P.z + data->cos_phi * _P.x;
+        P.y = _P.y;
+        return P;
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    rotationZ,
+    {
+        base_ptr O = obj + data->o;
+        point P;
+        P.x = data->cos_phi * p.x + data->sin_phi * p.y;
+        P.y = -data->sin_phi * p.x + data->cos_phi * p.y;
+        P.z = p.z;
+        return RAYS_DIST( O, P );
+    },
+    {
+        base_ptr O = obj + data->o;
+        point P; point _P;
+        P.x = data->cos_phi * p.x + data->sin_phi * p.y;
+        P.y = -data->sin_phi * p.x + data->cos_phi * p.y;
+        P.z = p.z;
+        _P = RAYS_NORM( O, P );
+        P.x = data->cos_phi * _P.x - data->sin_phi * _P.y;
+        P.y = data->sin_phi * _P.x + data->cos_phi * _P.y;
+        P.z = _P.z;
+        return P;
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    rotationQ,
+    {
+        base_ptr O = obj + data->o;
+        point P = p; matrix Q;scalar temp;
+
+        Q.x.x = data->q.x * data->q.x;
+        Q.y.y = data->q.y * data->q.y;
+        Q.z.z = data->q.z * data->q.z;
+        temp = Q.x.x + Q.y.y + Q.z.z;
+        Q.x.x -= temp;
+        Q.y.y -= temp;
+        Q.z.z -= temp;
+
+        Q.x.y = data->q.x * data->q.y;
+        temp = data->q.z * data->q_w;
+        Q.x.x = Q.x.y + temp;
+        Q.x.y -= temp;
+
+        Q.y.z = data->q.y * data->q.z;
+        temp = data->q.x * data->q_w;
+        Q.z.y = Q.y.z + temp;
+        Q.y.z -= temp;
+
+        Q.z.x = data->q.z * data->q.x;
+        temp = data->q.y * data->q_w;
+        Q.x.z = Q.z.x + temp;
+        Q.z.x -= temp;
+
+        P.x += 2.f * ( Q.x.x * p.x + Q.x.y * p.y + Q.x.z * p.z );
+        P.y += 2.f * ( Q.y.x * p.x + Q.y.y * p.y + Q.y.z * p.z );
+        P.z += 2.f * ( Q.z.x * p.x + Q.z.y * p.y + Q.z.z * p.z );
+        return RAYS_DIST( O, P );
+    },
+    {
+        base_ptr O = obj + data->o;
+        point P = p; point _P; matrix Q; scalar temp;
+
+        Q.x.x = data->q.x * data->q.x;
+        Q.y.y = data->q.y * data->q.y;
+        Q.z.z = data->q.z * data->q.z;
+        temp = Q.x.x + Q.y.y + Q.z.z;
+        Q.x.x -= temp;
+        Q.y.y -= temp;
+        Q.z.z -= temp;
+
+        Q.x.y = data->q.x * data->q.y;
+        temp = data->q.z * data->q_w;
+        Q.x.x = Q.x.y + temp;
+        Q.x.y -= temp;
+
+        Q.y.z = data->q.y * data->q.z;
+        temp = data->q.x * data->q_w;
+        Q.z.y = Q.y.z + temp;
+        Q.y.z -= temp;
+
+        Q.z.x = data->q.z * data->q.x;
+        temp = data->q.y * data->q_w;
+        Q.x.z = Q.z.x + temp;
+        Q.z.x -= temp;
+
+        P.x += 2.f * ( Q.x.x * p.x + Q.x.y * p.y + Q.x.z * p.z );
+        P.y += 2.f * ( Q.y.x * p.x + Q.y.y * p.y + Q.y.z * p.z );
+        P.z += 2.f * ( Q.z.x * p.x + Q.z.y * p.y + Q.z.z * p.z );
+        _P = RAYS_NORM( O, P );
+        P = _P;
+        P.x += 2.f * ( Q.x.x * _P.x + Q.y.x * _P.y + Q.z.x * _P.z );
+        P.y += 2.f * ( Q.x.y * _P.x + Q.y.y * _P.y + Q.z.y * _P.z );
+        P.z += 2.f * ( Q.x.z * _P.x + Q.y.z * _P.y + Q.z.z * _P.z );
+        return P;
     } );
 };
 
@@ -228,8 +380,9 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
                     curr_norm.x = -r.d.x;
                     curr_norm.y = -r.d.y;
                     curr_norm.z = -r.d.z;
-                } else
+                } else {
                     curr_norm = RAYS_NORM( curr_ptr, r.p );
+                }
 
                 if ( dot( curr_norm, r.d ) < 0.f ) {
                     scalar R_1 = rnorm3df( curr_norm.x, curr_norm.y, curr_norm.z );

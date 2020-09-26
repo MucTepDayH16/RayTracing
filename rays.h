@@ -59,6 +59,9 @@ namespace primitives {
 typedef unsigned char byte;
 typedef float scalar;
 typedef float3 point;
+typedef struct { point x, y, z; } matrix;
+typedef float4 point4;
+typedef struct { point4 x, y, z, w; } matrix4;
 
 struct base;
 typedef base* base_ptr;
@@ -76,7 +79,10 @@ enum object_type {
     type_invertion,
 
     type_translation = 0x0200,
-    type_rotation
+    type_rotationX,
+    type_rotationY,
+    type_rotationZ,
+    type_rotationQ
 };
 
 static __device__ __inline__ point mul_point( const point& p, const scalar& s ) {
@@ -99,12 +105,18 @@ struct base {
 };
 
 // TYPE_LIST
-CREATE_OBJECT_TYPE_DESCRIPTION( sphere, struct { point c; scalar r; } )
-CREATE_OBJECT_TYPE_DESCRIPTION( cube, struct { point c; point b; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( sphere, struct { scalar r; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( cube, struct { point b; } )
 
 CREATE_OBJECT_TYPE_DESCRIPTION( unification, struct { int o1; int o2; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( intersection, struct { int o1; int o2; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( invertion, struct { int o; } )
+
+CREATE_OBJECT_TYPE_DESCRIPTION( translation, struct { int o; point t; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( rotationX, struct { int o; scalar cos_phi; scalar sin_phi; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( rotationY, struct { int o; scalar cos_phi; scalar sin_phi; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( rotationZ, struct { int o; scalar cos_phi; scalar sin_phi; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( rotationQ, struct { int o; scalar q_w; point q; } )
 
 };
 

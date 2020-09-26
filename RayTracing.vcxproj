@@ -24,7 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="cpp.hint" />
     <None Include="README.md" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

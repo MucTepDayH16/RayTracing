@@ -64,10 +64,15 @@ switch ( __SELF__->type ) {                                                     
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, unification );                       \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, intersection );                      \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, invertion );                         \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, translation );                       \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationX );                         \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationY );                         \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationZ );                         \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationQ );                         \
 }
 
-#define RAYS_DIST(__SELF__,__POINT__) ((__SELF__)->dist ? ((__SELF__)->dist((__SELF__),(__POINT__))) : (RAYS_MAX_DIST))
-#define RAYS_NORM(__SELF__,__POINT__) ((__SELF__)->norm ? ((__SELF__)->norm((__SELF__),(__POINT__))) : point{ 0.f, 0.f, 0.f })
+#define RAYS_DIST(__SELF__,__POINT__) ((__SELF__)->dist((__SELF__),(__POINT__)))
+#define RAYS_NORM(__SELF__,__POINT__) ((__SELF__)->norm((__SELF__),(__POINT__)))
 
 
 // RAYMARCHING
