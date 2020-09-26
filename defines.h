@@ -61,9 +61,13 @@ case primitives::type_##__TYPE__:                                               
 switch ( __SELF__->type ) {                                                         \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, sphere );                            \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, cube );                              \
+\
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, unification );                       \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, intersection );                      \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, invertion );                         \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, smooth_unification );                \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, smooth_intersection );               \
+\
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, translation );                       \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationX );                         \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationY );                         \
@@ -76,13 +80,13 @@ switch ( __SELF__->type ) {                                                     
 
 
 // RAYMARCHING
-#define RAYS_BLOCK_1D_x 256
+#define RAYS_BLOCK_1D_x 128
 
 #define RAYS_BLOCK_2D_x 16
-#define RAYS_BLOCK_2D_y 16
+#define RAYS_BLOCK_2D_y 8
 
 #define RAYS_BLOCK_3D_x 8
-#define RAYS_BLOCK_3D_y 8
+#define RAYS_BLOCK_3D_y 4
 #define RAYS_BLOCK_3D_z 4
 
 #define RAYS_COORD_nD(c,n) blockIdx.##c * RAYS_BLOCK_##n##D_##c + threadIdx.##c

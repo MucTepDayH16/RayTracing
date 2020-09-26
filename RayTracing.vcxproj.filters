@@ -16,6 +16,9 @@
     <Filter Include="git">
       <UniqueIdentifier>{d23f3605-01be-4bf1-8d3d-8ec2b85edc64}</UniqueIdentifier>
     </Filter>
+    <Filter Include="nv">
+      <UniqueIdentifier>{2f9876c0-ff87-4aac-9432-fb9a8e7f1494}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md">
@@ -23,6 +26,9 @@
     </None>
     <None Include=".gitignore">
       <Filter>git</Filter>
+    </None>
+    <None Include="Activity.nvact">
+      <Filter>nv</Filter>
     </None>
   </ItemGroup>
 </Project>

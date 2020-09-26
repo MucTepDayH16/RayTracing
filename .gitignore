@@ -353,3 +353,6 @@ MigrationBackup/
 *.png
 *.jpg
 *.bmp
+
+# NVidia Debugging files
+*.nvact

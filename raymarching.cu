@@ -7,6 +7,10 @@ __device__ __inline__ point Point( scalar x, scalar y, scalar z ) {
     return point{ x, y, z };
 }
 
+__device__ __inline__ scalar mix( scalar a, scalar b, scalar x ) {
+    return b + ( a - b ) * x;
+}
+
 // TYPE_LIST
 CREATE_OBJECT_TYPE_DEFINITION(
     sphere,
@@ -40,6 +44,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
             return q.x > q.z ? ( q.x > q.y ? Point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
             //Point( q.x > 0.f ? ( p.x >= data->c.x ? 1.f : -1.f ) : 0.f, q.y > 0.f ? ( p.y >= data->c.y ? 1.f : -1.f ) : 0.f, q.z > 0.f ? ( p.z >= data->c.z ? 1.f : -1.f ) : 0.f );
     } );
+
 
 CREATE_OBJECT_TYPE_DEFINITION(
     unification,
@@ -83,6 +88,45 @@ CREATE_OBJECT_TYPE_DEFINITION(
         point N = RAYS_NORM( O, p );
         return Point( -N.x, -N.y, -N.z );
     } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    smooth_unification,
+    {
+        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
+        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
+        scalar h = ( 1.f + ( d2 - d1 ) / data->k ) * .5f;
+        if ( h > 1.f ) return d1;
+        if ( h < 0.f ) return d2;
+        return mix( d1, d2, h ) - data->k * h * ( 1.f - h );
+    },
+    {
+        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
+        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
+        scalar h = ( 1.f + ( d2 - d1 ) / data->k ) * .5f;
+        if ( h > 1.f ) return RAYS_NORM( o1, p );
+        if ( h < 0.f ) return RAYS_NORM( o2, p );
+        point n1 = RAYS_NORM( o1, p ); point n2 = RAYS_NORM( o2, p );
+        return Point( mix( n1.x, n2.x, h ), mix( n1.y, n2.y, h ), mix( n1.z, n2.z, h ) );
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    smooth_intersection,
+    {
+        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
+        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
+        scalar h = ( 1.f + ( d1 - d2 ) / data->k ) * .5f;
+        if ( h > 1.f ) return d1;
+        if ( h < 0.f ) return d2;
+        return mix( d1, d2, h ) + data->k * h * ( 1.f - h );
+    },
+    {
+        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
+        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
+        scalar h = ( 1.f + ( d1 - d2 ) / data->k ) * .5f;
+        if ( h > 1.f ) return RAYS_NORM( o1, p );
+        if ( h < 0.f ) return RAYS_NORM( o2, p );
+        point n1 = RAYS_NORM( o1, p ); point n2 = RAYS_NORM( o2, p );
+        return Point( mix( n1.x, n2.x, h ), mix( n1.y, n2.y, h ), mix( n1.z, n2.z, h ) );
+    } );
+
 
 CREATE_OBJECT_TYPE_DEFINITION(
     translation,
@@ -172,7 +216,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
     rotationQ,
     {
         base_ptr O = obj + data->o;
-        point P = p; matrix Q;scalar temp;
+        matrix Q; scalar temp;
 
         Q.x.x = data->q.x * data->q.x;
         Q.y.y = data->q.y * data->q.y;
@@ -184,7 +228,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
 
         Q.x.y = data->q.x * data->q.y;
         temp = data->q.z * data->q_w;
-        Q.x.x = Q.x.y + temp;
+        Q.y.x = Q.x.y + temp;
         Q.x.y -= temp;
 
         Q.y.z = data->q.y * data->q.z;
@@ -197,6 +241,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         Q.x.z = Q.z.x + temp;
         Q.z.x -= temp;
 
+        point P = p;
         P.x += 2.f * ( Q.x.x * p.x + Q.x.y * p.y + Q.x.z * p.z );
         P.y += 2.f * ( Q.y.x * p.x + Q.y.y * p.y + Q.y.z * p.z );
         P.z += 2.f * ( Q.z.x * p.x + Q.z.y * p.y + Q.z.z * p.z );
@@ -204,7 +249,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
     },
     {
         base_ptr O = obj + data->o;
-        point P = p; point _P; matrix Q; scalar temp;
+        matrix Q; scalar temp;
 
         Q.x.x = data->q.x * data->q.x;
         Q.y.y = data->q.y * data->q.y;
@@ -216,7 +261,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
 
         Q.x.y = data->q.x * data->q.y;
         temp = data->q.z * data->q_w;
-        Q.x.x = Q.x.y + temp;
+        Q.y.x = Q.x.y + temp;
         Q.x.y -= temp;
 
         Q.y.z = data->q.y * data->q.z;
@@ -229,14 +274,15 @@ CREATE_OBJECT_TYPE_DEFINITION(
         Q.x.z = Q.z.x + temp;
         Q.z.x -= temp;
 
+        point P = p;
         P.x += 2.f * ( Q.x.x * p.x + Q.x.y * p.y + Q.x.z * p.z );
         P.y += 2.f * ( Q.y.x * p.x + Q.y.y * p.y + Q.y.z * p.z );
         P.z += 2.f * ( Q.z.x * p.x + Q.z.y * p.y + Q.z.z * p.z );
-        _P = RAYS_NORM( O, P );
-        P = _P;
-        P.x += 2.f * ( Q.x.x * _P.x + Q.y.x * _P.y + Q.z.x * _P.z );
-        P.y += 2.f * ( Q.x.y * _P.x + Q.y.y * _P.y + Q.z.y * _P.z );
-        P.z += 2.f * ( Q.x.z * _P.x + Q.y.z * _P.y + Q.z.z * _P.z );
+        point N = RAYS_NORM( O, P );
+        P = N;
+        P.x += 2.f * ( Q.x.x * N.x + Q.y.x * N.y + Q.z.x * N.z );
+        P.y += 2.f * ( Q.x.y * N.x + Q.y.y * N.y + Q.z.y * N.z );
+        P.z += 2.f * ( Q.x.z * N.x + Q.y.z * N.y + Q.z.z * N.z );
         return P;
     } );
 };

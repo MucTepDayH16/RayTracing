@@ -1,9 +1,11 @@
 #pragma once
 
-#include <iostream>
 #include <list>
 #include <cmath>
 #include <memory>
+#include <bitset>
+#include <iomanip>
+#include <iostream>
 
 #include <SDL2\SDL.h>
 #include <SDL2\SDL_image.h>
@@ -57,6 +59,7 @@ cudaStream_t Stream( size_t );
 namespace primitives {
 
 typedef unsigned char byte;
+typedef long counter;
 typedef float scalar;
 typedef float3 point;
 typedef struct { point x, y, z; } matrix;
@@ -77,6 +80,9 @@ enum object_type {
     type_unification = 0x0100,
     type_intersection,
     type_invertion,
+    type_smooth_unification,
+    type_smooth_intersection,
+    type_smooth_invertion,
 
     type_translation = 0x0200,
     type_rotationX,
@@ -108,15 +114,17 @@ struct base {
 CREATE_OBJECT_TYPE_DESCRIPTION( sphere, struct { scalar r; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( cube, struct { point b; } )
 
-CREATE_OBJECT_TYPE_DESCRIPTION( unification, struct { int o1; int o2; } )
-CREATE_OBJECT_TYPE_DESCRIPTION( intersection, struct { int o1; int o2; } )
-CREATE_OBJECT_TYPE_DESCRIPTION( invertion, struct { int o; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( unification, struct { counter o1; counter o2; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( intersection, struct { counter o1; counter o2; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( invertion, struct { counter o; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( smooth_unification, struct { counter o1; counter o2; scalar k; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( smooth_intersection, struct { counter o1; counter o2; scalar k; } )
 
-CREATE_OBJECT_TYPE_DESCRIPTION( translation, struct { int o; point t; } )
-CREATE_OBJECT_TYPE_DESCRIPTION( rotationX, struct { int o; scalar cos_phi; scalar sin_phi; } )
-CREATE_OBJECT_TYPE_DESCRIPTION( rotationY, struct { int o; scalar cos_phi; scalar sin_phi; } )
-CREATE_OBJECT_TYPE_DESCRIPTION( rotationZ, struct { int o; scalar cos_phi; scalar sin_phi; } )
-CREATE_OBJECT_TYPE_DESCRIPTION( rotationQ, struct { int o; scalar q_w; point q; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( translation, struct { counter o; point t; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( rotationX, struct { counter o; scalar cos_phi; scalar sin_phi; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( rotationY, struct { counter o; scalar cos_phi; scalar sin_phi; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( rotationZ, struct { counter o; scalar cos_phi; scalar sin_phi; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( rotationQ, struct { counter o; scalar q_w; point q; } )
 
 };
 
