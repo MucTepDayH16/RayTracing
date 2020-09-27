@@ -15,38 +15,39 @@ class __TYPE__ {                                                                
 protected:                                                                          \
     typedef __STRUCT__ data_struct;                                                 \
     template< typename ARG0, typename... ARGN >                                     \
-    static __host__ base_ptr emplace( byte *data, ARG0 arg, ARGN... args ) {        \
+    static __host__ bazo_ptr emplace( byte *data, ARG0 arg, ARGN... args ) {        \
         memcpy( data, &arg, sizeof ARG0 );                                          \
         return emplace( data + sizeof ARG0, args... );                              \
     }                                                                               \
     template< typename ARG0 >                                                       \
-    static __host__ base_ptr emplace( byte *data, ARG0 arg ) {                      \
+    static __host__ bazo_ptr emplace( byte *data, ARG0 arg ) {                      \
         memcpy( data, &arg, sizeof ARG0 );                                          \
         return nullptr;                                                             \
     }                                                                               \
 public:                                                                             \
-    static __host__ base_ptr create( data_struct& );                                \
+    static __host__ bazo_ptr create( data_struct& );                                \
     template< typename... ARGN >                                                    \
-    static __host__ base_ptr create_from( ARGN... args ) {                          \
+    static __host__ bazo_ptr create_from( ARGN... args ) {                          \
         data_struct NEW;                                                            \
+        memset( &NEW, 0x00, sizeof data_struct );                                   \
         emplace( reinterpret_cast< byte* >( &NEW ), args... );                      \
         return create( NEW );                                                       \
     }                                                                               \
-    static __device__ __inline__ scalar dist( base_ptr, const point& p );           \
-    static __device__ __inline__ point norm( base_ptr, const point& p );            \
+    static __device__ __inline__ scalar dist( bazo_ptr, const point& p );           \
+    static __device__ __inline__ point norm( bazo_ptr, const point& p );            \
 };
 
 #define CREATE_OBJECT_TYPE_DEFINITION(__TYPE__,__DIST__,__NORM__)                   \
-__host__ base_ptr __TYPE__##::create( __TYPE__##::data_struct &data ) {             \
-    base_ptr NEW = new base( type_##__TYPE__ );                                     \
+__host__ bazo_ptr __TYPE__##::create( __TYPE__##::data_struct &data ) {             \
+    bazo_ptr NEW = new bazo( type_##__TYPE__ );                                     \
     memcpy( NEW->data, &data, sizeof data_struct );                                 \
     return NEW;                                                                     \
 }                                                                                   \
-__device__ __inline__ scalar __TYPE__##::dist( base_ptr obj, const point &p ) {     \
+__device__ __inline__ scalar __TYPE__##::dist( bazo_ptr obj, const point &p ) {     \
     data_struct *data = reinterpret_cast<data_struct*>( obj->data );                \
     __DIST__                                                                        \
 }                                                                                   \
-__device__ __inline__ point __TYPE__##::norm( base_ptr obj, const point &p ) {      \
+__device__ __inline__ point __TYPE__##::norm( bazo_ptr obj, const point &p ) {      \
     data_struct *data = reinterpret_cast<data_struct*>( obj->data );                \
     __NORM__                                                                        \
 }
@@ -59,20 +60,25 @@ case primitives::type_##__TYPE__:                                               
 
 #define CREATE_OBJECT_TYPE_PROCESSING_LISTING_2(__SELF__)                           \
 switch ( __SELF__->type ) {                                                         \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, sphere );                            \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, cube );                              \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, sfero );                             \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, kubo );                              \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, cilindro );                          \
 \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, unification );                       \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, intersection );                      \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, invertion );                         \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, smooth_unification );                \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, smooth_intersection );               \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, kunigajo_2 );                        \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, kunigajo_3 );                        \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, kunigajo_4 );                        \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, komunajo_2 );                        \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, komunajo_3 );                        \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, komunajo_4 );                        \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, komplemento );                       \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, glata_kunigajo_2 );                  \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, glata_komunajo_2 );                  \
 \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, translation );                       \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationX );                         \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationY );                         \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationZ );                         \
-    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotationQ );                         \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, movo );                              \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioX );                          \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioY );                          \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioZ );                          \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioQ );                          \
 }
 
 #define RAYS_DIST(__SELF__,__POINT__) ((__SELF__)->dist((__SELF__),(__POINT__)))
@@ -102,3 +108,9 @@ switch ( __SELF__->type ) {                                                     
 #define KERNEL_PTR *__restrict__
 
 #define RGB_PIXEL(p) (uchar4{ (p.x), (p.y), (p.z), 0xff });
+
+#define length_2(x,y)       (hypotf((x),(y)))
+#define length_3(x,y,z)     (norm3df((x),(y),(z)))
+
+#define r_length_2(x,y)     (rhypotf((x),(y)))
+#define r_length_3(x,y,z)   (rnorm3df((x),(y),(z)))

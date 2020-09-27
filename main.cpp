@@ -83,35 +83,71 @@ int main( int argc, char **argv ) {
 
     float3 LightingSourceH = float3{ 2.f * M_SQRT1_5f, 0.f, M_SQRT1_5f };
 
-    list< primitives::base_ptr > PrimitivesH;
+    list< primitives::bazo_ptr > PrimitivesH;
     {
+        //PrimitivesH.push_back(
+        //    primitives::glata_kunigajo::create_from( 1, 3, 20.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::movo::create_from( 1, 0.f, -50.f, 0.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::cilindro::create_from( 50.f, 50.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::movo::create_from( 1, 0.f, 50.f, 0.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::sfero::create_from( 70.f )
+        //);
+
         float3 d{ 1.f, 30.f, 1.f };
         float theta = -1.8f, w = cosf( theta / 2.f ), r = sinf( theta / 2.f ) / sqrtf( d.x * d.x + d.y * d.y + d.z * d.z );
         //PrimitivesH.push_back( primitives::rotationX::create_from( 1, cosf( theta ), sinf( theta ) ) );
-        PrimitivesH.push_back( primitives::rotationQ::create_from( 1, w, r * d.x, r * d.y, r * d.z )                                );
-        PrimitivesH.push_back( primitives::intersection::create_from( 1, 3 )                                                        );
-        PrimitivesH.push_back( primitives::translation::create_from( 1, 0.f, 0.f, 0.f )                                             );
-        PrimitivesH.push_back( primitives::cube::create_from( 50.f, 50.f, 50.f )                                                    );
-        PrimitivesH.push_back( primitives::invertion::create_from( 1 )                                                              );
-        PrimitivesH.push_back( primitives::unification::create_from( 1, 3 )                                                         );
-        PrimitivesH.push_back( primitives::translation::create_from( 1, 0.f, 0.f, -50.f )                                           );
-        PrimitivesH.push_back( primitives::sphere::create_from( 60.f )                                                              );
-        PrimitivesH.push_back( primitives::translation::create_from( 1, 0.f, 0.f, 50.f )                                            );
-        PrimitivesH.push_back( primitives::sphere::create_from( 40.f )                                                              );
+        PrimitivesH.push_back(
+            primitives::rotacioQ::create_from( 1, w, r * d.x, r * d.y, r * d.z )
+        );
+        PrimitivesH.push_back(
+            primitives::komunajo_2::create_from( 1, 3 )
+        );
+        PrimitivesH.push_back(
+            primitives::movo::create_from( 1, 0.f, 0.f, 0.f )
+        );
+        PrimitivesH.push_back(
+            primitives::kubo::create_from( 50.f, 50.f, 50.f )
+        );
+        PrimitivesH.push_back(
+            primitives::komplemento::create_from( 1 )
+        );
+        PrimitivesH.push_back(
+            primitives::kunigajo_2::create_from( 1, 3 )
+        );
+        PrimitivesH.push_back(
+            primitives::movo::create_from( 1, 0.f, 0.f, -50.f )
+        );
+        PrimitivesH.push_back(
+            primitives::sfero::create_from( 60.f )
+        );
+        PrimitivesH.push_back(
+            primitives::movo::create_from( 1, 0.f, 0.f, 50.f )
+        );
+        PrimitivesH.push_back(
+            primitives::sfero::create_from( 40.f )
+        );
     }
 
     raymarching::start_init_rays_info InfoH;
     InfoH.Width = Width;
     InfoH.Height = Height;
     InfoH.Depth = 1000;//( Width + Height ) / 2;
-    InfoH.StartPos = float3{ -100.f, 0.f, 0.f };
+    InfoH.StartPos = float3{ -200.f, 0.f, 0.f };
 
     SDL_Point currMouse{ 0, 0 }, prevMouse;
 
     raymarching::Init( Width, Height, PrimitivesH.size(), SurfD );
 
     float cuda_time = 0.f, step = 20.f, fps = INFINITY;
-    float scale = .125f, theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
+    float scale = powf( 2.f, -6.1f ), theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
     float cos_1 = cosf( M_PI / 180.f ), sin_1 = sinf( M_PI / 180.f ), deg = M_PI / 360.f;
     bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false;
 
@@ -149,7 +185,7 @@ int main( int argc, char **argv ) {
                     };
                     break;
                 case SDLK_SPACE:
-                    scale = .5f;
+                    scale = powf( 2.f, -6.1f );
                     theta = 0.f;
                     cos_theta = 1.f;
                     sin_theta = 0.f;

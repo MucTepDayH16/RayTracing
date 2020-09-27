@@ -13,15 +13,15 @@ __device__ __inline__ scalar mix( scalar a, scalar b, scalar x ) {
 
 // TYPE_LIST
 CREATE_OBJECT_TYPE_DEFINITION(
-    sphere,
+    sfero,
     {
-        return norm3df( p.x, p.y, p.z ) - data->r;
+        return length_3( p.x, p.y, p.z ) - data->r;
     },
     {
         return p;
     } );
-CREATE_OBJECT_TYPE_DEFINITION( 
-    cube,
+CREATE_OBJECT_TYPE_DEFINITION(
+    kubo,
     {
         point q;
         q.x = fabsf( p.x ) - data->b.x;
@@ -30,108 +30,216 @@ CREATE_OBJECT_TYPE_DEFINITION(
         if ( q.x < 0.f && q.y < 0.f && q.z < 0.f )
             return max( q.x, max( q.y, q.z ) );
         else
-            return norm3df( max( q.x, 0.f ), max( q.y, 0.f ), max( q.z, 0.f ) );
+            return length_3( max( q.x, 0.f ), max( q.y, 0.f ), max( q.z, 0.f ) );
     },
     {
         point q;
         q.x = fabsf( p.x ) - data->b.x;
         q.y = fabsf( p.y ) - data->b.y;
         q.z = fabsf( p.z ) - data->b.z;
-        scalar qR_1 = rnorm3df( max( q.x, 0.f ), max( q.y, 0.f ), max( q.z, 0.f ) );
         if ( q.x < 0.f && q.y < 0.f && q.z < 0.f )
             return q.x > q.z ? ( q.x > q.y ? Point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
         else
             return q.x > q.z ? ( q.x > q.y ? Point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
-            //Point( q.x > 0.f ? ( p.x >= data->c.x ? 1.f : -1.f ) : 0.f, q.y > 0.f ? ( p.y >= data->c.y ? 1.f : -1.f ) : 0.f, q.z > 0.f ? ( p.z >= data->c.z ? 1.f : -1.f ) : 0.f );
+        //Point( q.x > 0.f ? ( p.x >= data->c.x ? 1.f : -1.f ) : 0.f, q.y > 0.f ? ( p.y >= data->c.y ? 1.f : -1.f ) : 0.f, q.z > 0.f ? ( p.z >= data->c.z ? 1.f : -1.f ) : 0.f );
     } );
-
-
 CREATE_OBJECT_TYPE_DEFINITION(
-    unification,
+    cilindro,
     {
-        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
-        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
-        return min( d1, d2 );
+        scalar r = length_2( p.x, p.y );
+        float2 q;
+        q.x = r - data->r;
+        q.y = fabsf( p.z ) - data->h;
+        if ( q.x < 0.f && q.y < 0.f )
+            return q.x > q.y ? q.x : q.y;
+        else
+            return length_2( max( q.x, 0.f ), max( q.y, 0.f ) );
     },
     {
-        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
-        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
+        scalar r = length_2( p.x, p.y );
+        float2 q;
+        q.x = r - data->r;
+        q.y = fabsf( p.z ) - data->h;
+        if ( q.x < 0.f && q.y < 0.f )
+            return q.x > q.y ? Point( p.x, p.y, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f );
+        else
+            return q.x > q.y ? Point( p.x, p.y, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f );
 
-        base_ptr O = d1 < d2 ? o1 : o2;
-        point n = RAYS_NORM( O, p );
-        return n;
     } );
+
+
 CREATE_OBJECT_TYPE_DEFINITION(
-    intersection,
+    kunigajo_2,
     {
-        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
-        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
-        return max( d1, d2 );
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+        return min( d0, d1 );
     },
     {
-        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
-        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
 
-        base_ptr O = d1 > d2 ? o1 : o2;
-        point n = RAYS_NORM( O, p );
-        return n;
+        if ( d0 < d1 )  return RAYS_NORM( o0, p );
+        else            return RAYS_NORM( o1, p );
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
-    invertion,
+    kunigajo_3,
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr o = obj + data->o[ 0 ];
+        scalar d = RAYS_DIST( o, p );
+
+        o = obj + data->o[ 1 ];
+        d = min( d, RAYS_DIST( o, p ) );
+
+        o = obj + data->o[ 2 ];
+        return min( d, RAYS_DIST( o, p ) );
+    },
+    {
+        counter i_min = 0;
+        bazo_ptr o = obj + data->o[ 0 ];
+        scalar d; scalar d_min = RAYS_DIST( o, p );
+
+        o = obj + data->o[ 1 ];
+        d = RAYS_DIST( o, p );
+        if ( d_min > d ) { d_min = d; i_min = 1; }
+
+        o = obj + data->o[ 2 ];
+        d = RAYS_DIST( o, p );
+        if ( d_min > d ) { i_min = 2; }
+
+        o = obj + data->o[ i_min ];
+        return RAYS_NORM( o, p );
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    kunigajo_4,
+    {
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+        return min( d0, d1 );
+    },
+    {
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+
+        if ( d0 < d1 )  return RAYS_NORM( o0, p );
+        else            return RAYS_NORM( o1, p );
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    komunajo_2,
+    {
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+        return max( d0, d1 );
+    },
+    {
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+
+        if ( d0 > d1 )  return RAYS_NORM( o0, p );
+        else            return RAYS_NORM( o1, p );
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    komunajo_3,
+    {
+        bazo_ptr o = obj + data->o[ 0 ];
+        scalar d = RAYS_DIST( o, p );
+
+        o = obj + data->o[ 1 ];
+        d = max( d, RAYS_DIST( o, p ) );
+
+        o = obj + data->o[ 2 ];
+        return max( d, RAYS_DIST( o, p ) );
+    },
+    {
+        counter i_max = 0;
+        bazo_ptr o = obj + data->o[ 0 ];
+        scalar d; scalar d_max = RAYS_DIST( o, p );
+
+        o = obj + data->o[ 1 ];
+        d = RAYS_DIST( o, p );
+        if ( d_max < d ) { d_max = d; i_max = 1; }
+
+        o = obj + data->o[ 2 ];
+        d = RAYS_DIST( o, p );
+        if ( d_max < d ) { i_max = 2; }
+
+        o = obj + data->o[ i_max ];
+        return RAYS_NORM( o, p );
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    komunajo_4,
+    {
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+        return max( d0, d1 );
+    },
+    {
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+
+        if ( d0 > d1 )  return RAYS_NORM( o0, p );
+        else            return RAYS_NORM( o1, p );
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    komplemento,
+    {
+        bazo_ptr O = obj + data->o;
         scalar D = RAYS_DIST( O, p );
         return -D;
     },
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         point N = RAYS_NORM( O, p );
         return Point( -N.x, -N.y, -N.z );
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
-    smooth_unification,
+    glata_kunigajo_2,
     {
-        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
-        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
-        scalar h = ( 1.f + ( d2 - d1 ) / data->k ) * .5f;
-        if ( h > 1.f ) return d1;
-        if ( h < 0.f ) return d2;
-        return mix( d1, d2, h ) - data->k * h * ( 1.f - h );
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+        scalar h = ( 1.f - ( d0 - d1 ) / data->k ) * .5f;
+        if ( h > 1.f )  return d0;
+        if ( h < 0.f )  return d1;
+        return mix( d0, d1, h ) - data->k * h * ( 1.f - h );
     },
     {
-        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
-        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
-        scalar h = ( 1.f + ( d2 - d1 ) / data->k ) * .5f;
-        if ( h > 1.f ) return RAYS_NORM( o1, p );
-        if ( h < 0.f ) return RAYS_NORM( o2, p );
-        point n1 = RAYS_NORM( o1, p ); point n2 = RAYS_NORM( o2, p );
-        return Point( mix( n1.x, n2.x, h ), mix( n1.y, n2.y, h ), mix( n1.z, n2.z, h ) );
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+        scalar h = ( 1.f - ( d0 - d1 ) / data->k ) * .5f;
+        if ( h > 1.f )  return RAYS_NORM( o0, p );
+        if ( h < 0.f )  return RAYS_NORM( o1, p );
+        point n0 = RAYS_NORM( o0, p ); point n1 = RAYS_NORM( o1, p );
+        d0 = r_length_3( n0.x, n0.y, n0.z );
+        d1 = r_length_3( n1.x, n1.y, n1.z );
+        return Point( mix( d0 * n0.x, d1 * n1.x, h ), mix( d0 * n0.y, d1 * n1.y, h ), mix( d0 * n0.z, d1 * n1.z, h ) );
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
-    smooth_intersection,
+    glata_komunajo_2,
     {
-        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
-        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
-        scalar h = ( 1.f + ( d1 - d2 ) / data->k ) * .5f;
-        if ( h > 1.f ) return d1;
-        if ( h < 0.f ) return d2;
-        return mix( d1, d2, h ) + data->k * h * ( 1.f - h );
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+        scalar h = ( 1.f + ( d0 - d1 ) / data->k ) * .5f;
+        if ( h > 1.f )  return d0;
+        if ( h < 0.f )  return d1;
+        return mix( d0, d1, h ) + data->k * h * ( 1.f - h );
     },
     {
-        base_ptr o1 = obj + data->o1; base_ptr o2 = obj + data->o2;
-        scalar d1 = RAYS_DIST( o1, p ); scalar d2 = RAYS_DIST( o2, p );
-        scalar h = ( 1.f + ( d1 - d2 ) / data->k ) * .5f;
-        if ( h > 1.f ) return RAYS_NORM( o1, p );
-        if ( h < 0.f ) return RAYS_NORM( o2, p );
-        point n1 = RAYS_NORM( o1, p ); point n2 = RAYS_NORM( o2, p );
-        return Point( mix( n1.x, n2.x, h ), mix( n1.y, n2.y, h ), mix( n1.z, n2.z, h ) );
+        bazo_ptr o0 = obj + data->o[ 0 ]; bazo_ptr o1 = obj + data->o[ 1 ];
+        scalar d0 = RAYS_DIST( o0, p ); scalar d1 = RAYS_DIST( o1, p );
+        scalar h = ( 1.f + ( d0 - d1 ) / data->k ) * .5f;
+        if ( h > 1.f )  return RAYS_NORM( o0, p );
+        if ( h < 0.f )  return RAYS_NORM( o1, p );
+        point n0 = RAYS_NORM( o0, p ); point n1 = RAYS_NORM( o1, p );
+        d0 = r_length_3( n0.x, n0.y, n0.z );
+        d1 = r_length_3( n1.x, n1.y, n1.z );
+        return Point( mix( d0 * n0.x, d1 * n1.x, h ), mix( d0 * n0.y, d1 * n1.y, h ), mix( d0 * n0.z, d1 * n1.z, h ) );
     } );
 
 
 CREATE_OBJECT_TYPE_DEFINITION(
-    translation,
+    movo,
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         point P;
         P.x = p.x - data->t.x;
         P.y = p.y - data->t.y;
@@ -139,7 +247,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         return RAYS_DIST( O, P );
     },
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         point P;
         P.x = p.x - data->t.x;
         P.y = p.y - data->t.y;
@@ -147,9 +255,9 @@ CREATE_OBJECT_TYPE_DEFINITION(
         return RAYS_NORM( O, P );
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
-    rotationX,
+    rotacioX,
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         point P;
         P.y = data->cos_phi * p.y + data->sin_phi * p.z;
         P.z = -data->sin_phi * p.y + data->cos_phi * p.z;
@@ -157,7 +265,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         return RAYS_DIST( O, P );
     },
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         point P; point _P;
         P.y = data->cos_phi * p.y + data->sin_phi * p.z;
         P.z = -data->sin_phi * p.y + data->cos_phi * p.z;
@@ -169,9 +277,9 @@ CREATE_OBJECT_TYPE_DEFINITION(
         return P;
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
-    rotationY,
+    rotacioY,
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         point P;
         P.z = data->cos_phi * p.z + data->sin_phi * p.x;
         P.x = -data->sin_phi * p.z + data->cos_phi * p.x;
@@ -179,7 +287,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         return RAYS_DIST( O, P );
     },
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         point P; point _P;
         P.z = data->cos_phi * p.z + data->sin_phi * p.x;
         P.x = -data->sin_phi * p.z + data->cos_phi * p.x;
@@ -191,9 +299,9 @@ CREATE_OBJECT_TYPE_DEFINITION(
         return P;
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
-    rotationZ,
+    rotacioZ,
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         point P;
         P.x = data->cos_phi * p.x + data->sin_phi * p.y;
         P.y = -data->sin_phi * p.x + data->cos_phi * p.y;
@@ -201,7 +309,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         return RAYS_DIST( O, P );
     },
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         point P; point _P;
         P.x = data->cos_phi * p.x + data->sin_phi * p.y;
         P.y = -data->sin_phi * p.x + data->cos_phi * p.y;
@@ -213,9 +321,9 @@ CREATE_OBJECT_TYPE_DEFINITION(
         return P;
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
-    rotationQ,
+    rotacioQ,
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         matrix Q; scalar temp;
 
         Q.x.x = data->q.x * data->q.x;
@@ -248,7 +356,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         return RAYS_DIST( O, P );
     },
     {
-        base_ptr O = obj + data->o;
+        bazo_ptr O = obj + data->o;
         matrix Q; scalar temp;
 
         Q.x.x = data->q.x * data->q.x;
@@ -293,7 +401,7 @@ static size_t Width, Height;
 static cudaSurfaceObject_t Surface_d;
 
 static point *LightSource_d;
-static primitives::base *Primitives_d;
+static primitives::bazo *Primitives_d;
 static size_t PrimitivesNum;
 static ray *Rays_d;
 static start_init_rays_info *Info_d;
@@ -365,19 +473,19 @@ int Init( size_t width, size_t height, size_t count, const cudaSurfaceObject_t &
     PrimitivesNum = count;
 
     CUDA_ERROR( cudaMalloc( &LightSource_d, sizeof point ) );
-    CUDA_ERROR( cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::base ));
+    CUDA_ERROR( cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::bazo ));
     CUDA_ERROR( cudaMalloc( &Rays_d, Width * Height * sizeof ray ));
     CUDA_ERROR( cudaMalloc( &Info_d, sizeof start_init_rays_info ));
     return 1;
 }
 
-int Load( point &LightSource, std::list< primitives::base_ptr > &Primitives, start_init_rays_info &Info, cudaStream_t stream ) {
+int Load( point &LightSource, std::list< primitives::bazo_ptr > &Primitives, start_init_rays_info &Info, cudaStream_t stream ) {
 
     CUDA_ERROR( cudaMemcpyAsync( LightSource_d, &LightSource, sizeof point, cudaMemcpyHostToDevice, stream ) );
 
     size_t i = 0;
-    for ( primitives::base_ptr ptr : Primitives ) {
-        CUDA_ERROR( cudaMemcpyAsync( Primitives_d + i, ptr, sizeof primitives::base, cudaMemcpyHostToDevice, stream ) );
+    for ( primitives::bazo_ptr ptr : Primitives ) {
+        CUDA_ERROR( cudaMemcpyAsync( Primitives_d + i, ptr, sizeof primitives::bazo, cudaMemcpyHostToDevice, stream ) );
         ++i;
     }
 
@@ -391,15 +499,15 @@ int Load( point &LightSource, std::list< primitives::base_ptr > &Primitives, sta
 
 #define PRIMITIVES_PER_THREAD 2
 
-static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t width, size_t height, size_t time, ray KERNEL_PTR Rays, point KERNEL_PTR LightSource, primitives::base KERNEL_PTR Primitives, size_t PrimitivesNum ) {
+static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t width, size_t height, size_t time, ray KERNEL_PTR Rays, point KERNEL_PTR LightSource, primitives::bazo KERNEL_PTR Primitives, size_t PrimitivesNum ) {
     size_t  x = RAYS_COORD_nD( x, 2 ),
             y = RAYS_COORD_nD( y, 2 ),
             id = PRIMITIVES_PER_THREAD * ( threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x );
 
     // RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * PRIMITIVES_PER_THREAD >= PrimitivesNum
-    __shared__ primitives::base curr_ptr[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * PRIMITIVES_PER_THREAD ];
+    __shared__ primitives::bazo curr_ptr[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * PRIMITIVES_PER_THREAD ];
     if ( id < PrimitivesNum ) {
-        primitives::base_ptr self = curr_ptr + id;
+        primitives::bazo_ptr self = curr_ptr + id;
 
 #pragma unroll
         for ( uint16_t i = 0; i < PRIMITIVES_PER_THREAD; ++i, ++self ) {
@@ -431,7 +539,7 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
                 }
 
                 if ( dot( curr_norm, r.d ) < 0.f ) {
-                    scalar R_1 = rnorm3df( curr_norm.x, curr_norm.y, curr_norm.z );
+                    scalar R_1 = r_length_3( curr_norm.x, curr_norm.y, curr_norm.z );
 
                     uint8_t LIGHT = 0xff * ( RAYS_MIN_LUM + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + R_1 * dot( curr_norm, light ) ) );
                     uchar4 PIXEL = { LIGHT, LIGHT, LIGHT, 0xff };
