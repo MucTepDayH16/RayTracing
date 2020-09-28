@@ -93,7 +93,8 @@ enum object_type {
     type_rotacioX,
     type_rotacioY,
     type_rotacioZ,
-    type_rotacioQ
+    type_rotacioQ,
+    type_senfina_ripeto
 };
 
 static __device__ __inline__ point mul_point( const point& p, const scalar& s ) {
@@ -136,6 +137,7 @@ CREATE_OBJECT_TYPE_DESCRIPTION( rotacioX, struct { counter o; scalar cos_phi; sc
 CREATE_OBJECT_TYPE_DESCRIPTION( rotacioY, struct { counter o; scalar cos_phi; scalar sin_phi; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( rotacioZ, struct { counter o; scalar cos_phi; scalar sin_phi; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( rotacioQ, struct { counter o; scalar q_w; point q; } )
+CREATE_OBJECT_TYPE_DESCRIPTION( senfina_ripeto, struct { counter o; point a; } )
 
 };
 

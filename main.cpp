@@ -27,8 +27,8 @@ int main( int argc, char **argv ) {
 
         } else if ( arg.substr( 0, 1 ) == "-" ) {
             for ( size_t n = 1; n < arg.length(); ++n )
-            switch ( arg.at( n ) ) {
-            }
+                switch ( arg.at( n ) ) {
+                }
         }
     }
 
@@ -43,7 +43,11 @@ int main( int argc, char **argv ) {
         cudaStreamCreate( stream + i );
 
     SDL_Init( SDL_INIT_EVERYTHING );
-    SDL_Window *Win = SDL_CreateWindow( "GL", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_OPENGL );
+    SDL_Window *Win = SDL_CreateWindow(
+        "GL",
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        Width, Height,
+        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
     SDL_GLContext GL = SDL_GL_CreateContext( Win );
     glClearColor( 0.f, 0.f, 0.f, 1.f );
     glMatrixMode( GL_PROJECTION );
@@ -85,45 +89,35 @@ int main( int argc, char **argv ) {
 
     list< primitives::bazo_ptr > PrimitivesH;
     {
+        // INFINITY
         //PrimitivesH.push_back(
-        //    primitives::glata_kunigajo_2::create_from( 1, 3, 20.f )
+        //    primitives::komplemento::create_from( 1 )
         //);
         //PrimitivesH.push_back(
-        //    primitives::movo::create_from( 1, 0.f, 0.f, 50.f )
+        //    primitives::senfina_ripeto::create_from( 1, 0.f, 0.f, 100.f )
         //);
         //PrimitivesH.push_back(
-        //    primitives::kubo::create_from( 50.f, 50.f, 50.f )
+        //    primitives::senfina_ripeto::create_from( 1, 0.f, 100.f, 0.f )
         //);
         //PrimitivesH.push_back(
-        //    primitives::glata_kunigajo_2::create_from( 1, 3, 20.f )
+        //    primitives::senfina_ripeto::create_from( 1, 100.f, 0.f, 0.f )
         //);
         //PrimitivesH.push_back(
-        //    primitives::movo::create_from( 1, 0.f, -50.f, 0.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::cilindro::create_from( 50.f, 50.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::movo::create_from( 1, 0.f, 50.f, 0.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::sfero::create_from( 70.f )
+        //    primitives::sfero::create_from( 65.f )
         //);
 
         float3 d{ 1.f, 30.f, 1.f };
+        float theta = -1.8f, w = cosf( theta / 2.f ), r = sinf( theta / 2.f ) / sqrtf( d.x * d.x + d.y * d.y + d.z * d.z );
+
+        // TUBARETKA
         PrimitivesH.push_back(
             primitives::portanta_sfero::create_from( 1, 200.f, 0.f, 0.f, 90.f )
         );
-        float theta = -1.8f, w = cosf( theta / 2.f ), r = sinf( theta / 2.f ) / sqrtf( d.x * d.x + d.y * d.y + d.z * d.z );
-        //PrimitivesH.push_back( primitives::rotationX::create_from( 1, cosf( theta ), sinf( theta ) ) );
         PrimitivesH.push_back(
             primitives::rotacioQ::create_from( 1, w, r * d.x, r * d.y, r * d.z )
         );
         PrimitivesH.push_back(
-            primitives::komunajo_2::create_from( 1, 3 )
-        );
-        PrimitivesH.push_back(
-            primitives::movo::create_from( 1, 0.f, 0.f, 0.f )
+            primitives::komunajo_2::create_from( 1, 2 )
         );
         PrimitivesH.push_back(
             primitives::kubo::create_from( 50.f, 50.f, 50.f )
@@ -206,7 +200,7 @@ int main( int argc, char **argv ) {
                     cos_phi = 1.f;
                     sin_phi = 0.f;
 
-                    InfoH.StartPos = float3{ -200.f, 0.f, 0.f };
+                    InfoH.StartPos = float3{ 0.f, 0.f, 0.f };
                     InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
                     InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
                     InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
@@ -312,7 +306,7 @@ int main( int argc, char **argv ) {
         // Scene update
         SDL_GL_SwapWindow( Win );
 #ifndef _DEBUG
-        cout << "\rFrame per second : " << size_t( this_time - prev_time ) << "ms  \t\tTask execution : " << size_t( cuda_time ) << "ms  " << flush;
+        cout << "\rFrame time : " << size_t( this_time - prev_time ) << "ms  \t\tTask execution time : " << size_t( cuda_time ) << "ms  " << flush;
 #endif
     }
 

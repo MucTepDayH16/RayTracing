@@ -3,12 +3,16 @@
 
 namespace primitives {
 
-__device__ __inline__ point Point( scalar x, scalar y, scalar z ) {
+__device__ __forceinline__ point Point( scalar x, scalar y, scalar z ) {
     return point{ x, y, z };
 }
 
-__device__ __inline__ scalar mix( scalar a, scalar b, scalar x ) {
+__device__ __forceinline__ scalar mix( scalar a, scalar b, scalar x ) {
     return b + ( a - b ) * x;
+}
+
+__device__ __forceinline__ scalar dot( point a, point b ) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 // TYPE_LIST
@@ -412,6 +416,24 @@ CREATE_OBJECT_TYPE_DEFINITION(
         P.y += 2.f * ( Q.x.y * N.x + Q.y.y * N.y + Q.z.y * N.z );
         P.z += 2.f * ( Q.x.z * N.x + Q.y.z * N.y + Q.z.z * N.z );
         return P;
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
+    senfina_ripeto,
+    {
+        bazo_ptr o = obj + data->o;
+        point a = data->a; scalar N = floorf( dot( a, p ) / dot( a, a ) + .5f );
+        a.x = p.x - N * a.x;
+        a.y = p.y - N * a.y;
+        a.z = p.z - N * a.z;
+        return RAYS_DIST( o, a );
+    },
+    {
+        bazo_ptr o = obj + data->o;
+        point a = data->a; scalar N = floorf( dot( a, p ) / dot( a, a ) + .5f );
+        a.x = p.x - N * a.x;
+        a.y = p.y - N * a.y;
+        a.z = p.z - N * a.z;
+        return RAYS_NORM( o, a );
     } );
 };
 

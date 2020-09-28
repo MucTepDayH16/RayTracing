@@ -80,6 +80,7 @@ switch ( __SELF__->type ) {                                                     
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioY );                              \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioZ );                              \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioQ );                              \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, senfina_ripeto );                              \
 }
 
 #define RAYS_DIST(__SELF__,__POINT__) ((__SELF__)->dist((__SELF__),(__POINT__)))

@@ -68,6 +68,9 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AssemblerOutput>All</AssemblerOutput>
+      <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
+      <ExpandAttributedSource>false</ExpandAttributedSource>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -81,6 +84,7 @@
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <MaxRegCount>0</MaxRegCount>
       <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
+      <CudaRuntime>Shared</CudaRuntime>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -94,6 +98,9 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <AssemblerOutput>All</AssemblerOutput>
+      <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
+      <ExpandAttributedSource>false</ExpandAttributedSource>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -108,6 +115,7 @@
       <FastMath>true</FastMath>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <MaxRegCount>0</MaxRegCount>
+      <CudaRuntime>Shared</CudaRuntime>
     </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
