@@ -74,6 +74,7 @@ typedef point( *norm_func )( bazo_ptr, const point& );
 
 enum object_type {
     type_nenio = 0x0000,
+    type_portanta_sfero,
     type_sfero,
     type_kubo,
     type_cilindro,
@@ -115,6 +116,7 @@ struct bazo {
 };
 
 // TYPE_LIST
+CREATE_OBJECT_TYPE_DESCRIPTION( portanta_sfero, struct { counter o; point t; scalar r; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( sfero, struct { scalar r; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( kubo, struct { point b; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( cilindro, struct { scalar r; scalar h; } )
@@ -145,8 +147,9 @@ typedef float3 point;
 typedef struct { point p, d; } ray;
 typedef struct { size_t Width, Height, Depth; point StartPos, StartDir, StartWVec, StartHVec; } start_init_rays_info;
 
-int Init( size_t, size_t, size_t, const cudaSurfaceObject_t& );
-int Load( point &LightSource, std::list< primitives::bazo_ptr > &Primitives, start_init_rays_info &Info, cudaStream_t stream = 0 );
+int Init( size_t, size_t, const cudaSurfaceObject_t& );
+int InitPrimitives( std::list< primitives::bazo_ptr > &Primitives, cudaStream_t stream );
+int Load( point &LightSource, start_init_rays_info &Info, cudaStream_t stream = 0 );
 bool ImageProcessing( size_t, cudaStream_t stream = 0 );
 bool Quit();
 

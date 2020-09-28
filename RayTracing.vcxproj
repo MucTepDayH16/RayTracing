@@ -79,6 +79,8 @@
       <PtxAsOptionV>true</PtxAsOptionV>
       <FastMath>true</FastMath>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <MaxRegCount>0</MaxRegCount>
+      <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -91,6 +93,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -104,6 +107,7 @@
       <PtxAsOptionV>true</PtxAsOptionV>
       <FastMath>true</FastMath>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <MaxRegCount>0</MaxRegCount>
     </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

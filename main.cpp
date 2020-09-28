@@ -81,12 +81,21 @@ int main( int argc, char **argv ) {
     cudaEventCreate( &end );
 
 
-    float3 LightingSourceH = float3{ 2.f * M_SQRT1_5f, 0.f, M_SQRT1_5f };
+    float3 LightingSourceH = float3{ -2.f * M_SQRT1_5f, 0.f, M_SQRT1_5f };
 
     list< primitives::bazo_ptr > PrimitivesH;
     {
         //PrimitivesH.push_back(
-        //    primitives::glata_kunigajo::create_from( 1, 3, 20.f )
+        //    primitives::glata_kunigajo_2::create_from( 1, 3, 20.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::movo::create_from( 1, 0.f, 0.f, 50.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::kubo::create_from( 50.f, 50.f, 50.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::glata_kunigajo_2::create_from( 1, 3, 20.f )
         //);
         //PrimitivesH.push_back(
         //    primitives::movo::create_from( 1, 0.f, -50.f, 0.f )
@@ -102,6 +111,9 @@ int main( int argc, char **argv ) {
         //);
 
         float3 d{ 1.f, 30.f, 1.f };
+        PrimitivesH.push_back(
+            primitives::portanta_sfero::create_from( 1, 200.f, 0.f, 0.f, 90.f )
+        );
         float theta = -1.8f, w = cosf( theta / 2.f ), r = sinf( theta / 2.f ) / sqrtf( d.x * d.x + d.y * d.y + d.z * d.z );
         //PrimitivesH.push_back( primitives::rotationX::create_from( 1, cosf( theta ), sinf( theta ) ) );
         PrimitivesH.push_back(
@@ -140,11 +152,12 @@ int main( int argc, char **argv ) {
     InfoH.Width = Width;
     InfoH.Height = Height;
     InfoH.Depth = 1000;//( Width + Height ) / 2;
-    InfoH.StartPos = float3{ -200.f, 0.f, 0.f };
+    InfoH.StartPos = float3{ 0.f, 0.f, 0.f };
 
     SDL_Point currMouse{ 0, 0 }, prevMouse;
 
-    raymarching::Init( Width, Height, PrimitivesH.size(), SurfD );
+    raymarching::Init( Width, Height, SurfD );
+    raymarching::InitPrimitives( PrimitivesH, stream[ 0 ] );
 
     float cuda_time = 0.f, step = 20.f, fps = INFINITY;
     float scale = powf( 2.f, -6.1f ), theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
@@ -185,7 +198,7 @@ int main( int argc, char **argv ) {
                     };
                     break;
                 case SDLK_SPACE:
-                    scale = powf( 2.f, -6.1f );
+                    scale = powf( 2.f, -2.1f );
                     theta = 0.f;
                     cos_theta = 1.f;
                     sin_theta = 0.f;
@@ -273,14 +286,9 @@ int main( int argc, char **argv ) {
             LightingSourceH.z
         };
 
-        //InfoH.StartPos = InfoH.StartDir;
-        //InfoH.StartPos.x *= -InfoH.Depth;
-        //InfoH.StartPos.y *= -InfoH.Depth;
-        //InfoH.StartPos.z *= -InfoH.Depth;
-
         // Render Scene
         cudaEventRecord( start, stream[ 0 ] );
-        raymarching::Load( LightingSourceH, PrimitivesH, InfoH, stream[ 0 ] );
+        raymarching::Load( LightingSourceH, InfoH, stream[ 0 ] );
         raymarching::ImageProcessing( ( 256 * this_time ) / 1000, stream[ 0 ] );
         cudaEventRecord( end, stream[ 0 ] );
         cudaStreamSynchronize( stream[ 0 ] );

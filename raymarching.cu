@@ -13,6 +13,26 @@ __device__ __inline__ scalar mix( scalar a, scalar b, scalar x ) {
 
 // TYPE_LIST
 CREATE_OBJECT_TYPE_DEFINITION(
+    portanta_sfero,
+    {
+        point P;
+        P.x = p.x - data->t.x;
+        P.y = p.y - data->t.y;
+        P.z = p.z - data->t.z;
+        scalar d = length_3( P.x, P.y, P.z ) - data->r;
+        bazo_ptr o = obj + data->o;
+        if ( d <= RAYS_MIN_DIST )   return RAYS_DIST( o, P );
+        else                        return d;
+    },
+    {
+        point P;
+        P.x = p.x - data->t.x;
+        P.y = p.y - data->t.y;
+        P.z = p.z - data->t.z;
+        bazo_ptr o = obj + data->o;
+        return RAYS_NORM( o, P );
+    } );
+CREATE_OBJECT_TYPE_DEFINITION(
     sfero,
     {
         return length_3( p.x, p.y, p.z ) - data->r;
@@ -435,10 +455,52 @@ static __device__ __inline__ scalar dot( const point &p1, const point &p2 ) {
     return p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 }
 
-static __global__ void kernelLoad( start_init_rays_info KERNEL_PTR Info, ray KERNEL_PTR Rays ) {
+int Init( size_t width, size_t height, const cudaSurfaceObject_t &surface ) {
+    Width = width;
+    Height = height;
+    Surface_d = surface;
+
+    CUDA_ERROR( cudaMalloc( &LightSource_d, sizeof point ) );
+    CUDA_ERROR( cudaMalloc( &Rays_d, Width * Height * sizeof ray ) );
+    CUDA_ERROR( cudaMalloc( &Info_d, sizeof start_init_rays_info ) );
+    return 1;
+}
+
+static __global__ void kernelInitPrimitives( primitives::bazo KERNEL_PTR Primitives, size_t PrimitivesNum ) {
+    size_t x = RAYS_COORD_nD( x, 1 );
+
+    if ( x < PrimitivesNum ) {
+        primitives::bazo_ptr self = Primitives + x;
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self );
+    }
+}
+
+int InitPrimitives( std::list< primitives::bazo_ptr > &Primitives, cudaStream_t stream ) {
+    PrimitivesNum = Primitives.size();
+
+    if ( Primitives_d ) CUDA_ERROR( cudaFree( Primitives_d ) );
+    CUDA_ERROR( cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::bazo ) );
+
+    size_t i = 0;
+    for ( primitives::bazo_ptr ptr : Primitives ) {
+        CUDA_ERROR( cudaMemcpyAsync( Primitives_d + i, ptr, sizeof primitives::bazo, cudaMemcpyHostToDevice, stream ) );
+        ++i;
+    }
+
+    kernelInitPrimitives <<< grid( PrimitivesNum ), block_1d, 0, stream >>> ( Primitives_d, PrimitivesNum );
+
+    return 1;
+}
+
+static __global__ void kernelLoad( start_init_rays_info KERNEL_PTR Info_d, ray KERNEL_PTR Rays ) {
     int64_t
-        x = RAYS_COORD_nD(x,2),
-        y = RAYS_COORD_nD(y,2);
+        x = RAYS_COORD_nD( x, 2 ),
+        y = RAYS_COORD_nD( y, 2 );
+
+    __shared__ start_init_rays_info Info[ 1 ];
+    if ( threadIdx.x == 0 && threadIdx.y == 0 )
+        Info[ 0 ] = *Info_d;
+    __syncthreads();
 
     if ( x < Info->Width && y < Info->Height ) {
         scalar
@@ -466,28 +528,8 @@ static __global__ void kernelLoad( start_init_rays_info KERNEL_PTR Info, ray KER
     }
 }
 
-int Init( size_t width, size_t height, size_t count, const cudaSurfaceObject_t &surface ) {
-    Width = width;
-    Height = height;
-    Surface_d = surface;
-    PrimitivesNum = count;
-
-    CUDA_ERROR( cudaMalloc( &LightSource_d, sizeof point ) );
-    CUDA_ERROR( cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::bazo ));
-    CUDA_ERROR( cudaMalloc( &Rays_d, Width * Height * sizeof ray ));
-    CUDA_ERROR( cudaMalloc( &Info_d, sizeof start_init_rays_info ));
-    return 1;
-}
-
-int Load( point &LightSource, std::list< primitives::bazo_ptr > &Primitives, start_init_rays_info &Info, cudaStream_t stream ) {
-
+int Load( point &LightSource, start_init_rays_info &Info, cudaStream_t stream ) {
     CUDA_ERROR( cudaMemcpyAsync( LightSource_d, &LightSource, sizeof point, cudaMemcpyHostToDevice, stream ) );
-
-    size_t i = 0;
-    for ( primitives::bazo_ptr ptr : Primitives ) {
-        CUDA_ERROR( cudaMemcpyAsync( Primitives_d + i, ptr, sizeof primitives::bazo, cudaMemcpyHostToDevice, stream ) );
-        ++i;
-    }
 
     CUDA_ERROR( cudaMemcpyAsync( Info_d, &Info, sizeof start_init_rays_info, cudaMemcpyHostToDevice, stream ) );
 
@@ -512,7 +554,7 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
 #pragma unroll
         for ( uint16_t i = 0; i < PRIMITIVES_PER_THREAD; ++i, ++self ) {
             *self = Primitives[ id + i ];
-            CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self );
+            //CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self );
         }
     }
     __syncthreads();
