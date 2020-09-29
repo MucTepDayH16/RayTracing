@@ -25,24 +25,23 @@ protected:                                                                      
         return nullptr;                                                                 \
     }                                                                                   \
 public:                                                                                 \
-    static __host__ bazo_ptr create( data_struct& );                                    \
     template< typename... ARGN >                                                        \
-    static __host__ bazo_ptr create_from( ARGN... args ) {                              \
+    static __host__ bazo create_from( ARGN... args ) {                                  \
         data_struct NEW;                                                                \
         memset( &NEW, 0x00, sizeof data_struct );                                       \
         emplace( reinterpret_cast< byte* >( &NEW ), args... );                          \
         return create( NEW );                                                           \
+    }                                                                                   \
+    static __host__ bazo __TYPE__##::create( data_struct &data ) {                      \
+        bazo NEW( type_##__TYPE__ );                                                    \
+        memcpy( NEW.data, &data, sizeof data_struct );                                  \
+        return NEW;                                                                     \
     }                                                                                   \
     static __device__ __forceinline__ scalar dist( bazo_ptr, const point& p );          \
     static __device__ __forceinline__ point norm( bazo_ptr, const point& p );           \
 };
 
 #define CREATE_OBJECT_TYPE_DEFINITION(__TYPE__,__DIST__,__NORM__)                       \
-__host__ bazo_ptr __TYPE__##::create( __TYPE__##::data_struct &data ) {                 \
-    bazo_ptr NEW = new bazo( type_##__TYPE__ );                                         \
-    memcpy( NEW->data, &data, sizeof data_struct );                                     \
-    return NEW;                                                                         \
-}                                                                                       \
 __device__ __forceinline__ scalar __TYPE__##::dist( bazo_ptr obj, const point &p ) {    \
     data_struct *data = reinterpret_cast<data_struct*>( obj->data );                    \
     __DIST__                                                                            \

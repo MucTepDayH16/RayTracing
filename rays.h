@@ -150,7 +150,7 @@ typedef struct { point p, d; } ray;
 typedef struct { size_t Width, Height, Depth; point StartPos, StartDir, StartWVec, StartHVec; } start_init_rays_info;
 
 int Init( size_t, size_t, const cudaSurfaceObject_t& );
-int InitPrimitives( std::vector< primitives::bazo_ptr > &Primitives, cudaStream_t stream );
+int InitPrimitives( std::vector< primitives::bazo > &Primitives, cudaStream_t stream );
 int Load( point &LightSource, start_init_rays_info &Info, cudaStream_t stream = 0 );
 bool ImageProcessing( size_t, cudaStream_t stream = 0 );
 bool Quit();

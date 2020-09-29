@@ -497,15 +497,12 @@ static __global__ void kernelInitPrimitives( primitives::bazo KERNEL_PTR Primiti
     }
 }
 
-int InitPrimitives( std::vector< primitives::bazo_ptr > &Primitives, cudaStream_t stream ) {
+int InitPrimitives( std::vector< primitives::bazo > &Primitives, cudaStream_t stream ) {
     PrimitivesNum = Primitives.size();
 
     if ( Primitives_d ) CUDA_ERROR( cudaFree( Primitives_d ) );
     CUDA_ERROR( cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::bazo ) );
-
-    for ( size_t i = 0; i < PrimitivesNum; ++i ) {
-        CUDA_ERROR( cudaMemcpyAsync( Primitives_d + i, Primitives.at( i ), sizeof primitives::bazo, cudaMemcpyHostToDevice, stream ) );
-    }
+    CUDA_ERROR( cudaMemcpyAsync( Primitives_d, Primitives.data(), PrimitivesNum * sizeof primitives::bazo, cudaMemcpyHostToDevice, stream ) );
 
     kernelInitPrimitives <<< grid( PrimitivesNum ), block_1d, 0, stream >>> ( Primitives_d, PrimitivesNum );
     CUDA_ERROR( cudaStreamSynchronize( stream ) );
