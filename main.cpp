@@ -87,7 +87,8 @@ int main( int argc, char **argv ) {
 
     float3 LightingSourceH = float3{ -2.f * M_SQRT1_5f, 0.f, M_SQRT1_5f };
 
-    list< primitives::bazo_ptr > PrimitivesH;
+    vector< primitives::bazo_ptr > PrimitivesH;
+    PrimitivesH.reserve( RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD );
     {
         // INFINITY
         //PrimitivesH.push_back(
@@ -110,6 +111,9 @@ int main( int argc, char **argv ) {
         float theta = -1.8f, w = cosf( theta / 2.f ), r = sinf( theta / 2.f ) / sqrtf( d.x * d.x + d.y * d.y + d.z * d.z );
 
         // TUBARETKA
+        PrimitivesH.push_back(
+            primitives::senfina_ripeto::create_from( 1, 100.f, 500.f, 0.f )
+        );
         PrimitivesH.push_back(
             primitives::portanta_sfero::create_from( 1, 200.f, 0.f, 0.f, 90.f )
         );

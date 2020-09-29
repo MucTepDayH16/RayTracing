@@ -497,19 +497,18 @@ static __global__ void kernelInitPrimitives( primitives::bazo KERNEL_PTR Primiti
     }
 }
 
-int InitPrimitives( std::list< primitives::bazo_ptr > &Primitives, cudaStream_t stream ) {
+int InitPrimitives( std::vector< primitives::bazo_ptr > &Primitives, cudaStream_t stream ) {
     PrimitivesNum = Primitives.size();
 
     if ( Primitives_d ) CUDA_ERROR( cudaFree( Primitives_d ) );
     CUDA_ERROR( cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::bazo ) );
 
-    size_t i = 0;
-    for ( primitives::bazo_ptr ptr : Primitives ) {
-        CUDA_ERROR( cudaMemcpyAsync( Primitives_d + i, ptr, sizeof primitives::bazo, cudaMemcpyHostToDevice, stream ) );
-        ++i;
+    for ( size_t i = 0; i < PrimitivesNum; ++i ) {
+        CUDA_ERROR( cudaMemcpyAsync( Primitives_d + i, Primitives.at( i ), sizeof primitives::bazo, cudaMemcpyHostToDevice, stream ) );
     }
 
     kernelInitPrimitives <<< grid( PrimitivesNum ), block_1d, 0, stream >>> ( Primitives_d, PrimitivesNum );
+    CUDA_ERROR( cudaStreamSynchronize( stream ) );
 
     return 1;
 }
@@ -561,20 +560,18 @@ int Load( point &LightSource, start_init_rays_info &Info, cudaStream_t stream ) 
     return 1;
 }
 
-#define PRIMITIVES_PER_THREAD 2
-
 static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t width, size_t height, size_t time, ray KERNEL_PTR Rays, point KERNEL_PTR LightSource, primitives::bazo KERNEL_PTR Primitives, size_t PrimitivesNum ) {
     size_t  x = RAYS_COORD_nD( x, 2 ),
             y = RAYS_COORD_nD( y, 2 ),
-            id = PRIMITIVES_PER_THREAD * ( threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x );
+            id = RAYS_PRIMITIVES_PER_THREAD * ( threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x );
 
     // RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * PRIMITIVES_PER_THREAD >= PrimitivesNum
-    __shared__ primitives::bazo curr_ptr[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * PRIMITIVES_PER_THREAD ];
+    __shared__ primitives::bazo curr_ptr[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD ];
     if ( id < PrimitivesNum ) {
         primitives::bazo_ptr self = curr_ptr + id;
 
 #pragma unroll
-        for ( uint16_t i = 0; i < PRIMITIVES_PER_THREAD; ++i, ++self ) {
+        for ( uint16_t i = 0; i < RAYS_PRIMITIVES_PER_THREAD; ++i, ++self ) {
             *self = Primitives[ id + i ];
             //CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self );
         }
@@ -584,13 +581,10 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
     if ( x < width && y < height ) {
         scalar curr_dist, ray_dist = 0;
         ray r = Rays[ y * width + x ];
+        uchar4 PIXEL;
 
         for ( size_t I = 0; true; ++I ) {
             curr_dist = RAYS_DIST( curr_ptr, r.p );
-
-            r.p.x += curr_dist * r.d.x;
-            r.p.y += curr_dist * r.d.y;
-            r.p.z += curr_dist * r.d.z;
 
             if ( curr_dist < RAYS_MIN_DIST ) {
                 point curr_norm, light = *LightSource;
@@ -606,21 +600,24 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
                     scalar R_1 = r_length_3( curr_norm.x, curr_norm.y, curr_norm.z );
 
                     uint8_t LIGHT = 0xff * ( RAYS_MIN_LUM + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + R_1 * dot( curr_norm, light ) ) );
-                    uchar4 PIXEL = { LIGHT, LIGHT, LIGHT, 0xff };
-                    surf2Dwrite( PIXEL, image, x * 4, y );
+                    PIXEL = { LIGHT, LIGHT, LIGHT, 0xff };
                     break;
                 }
             }
 
+            r.p.x += curr_dist * r.d.x;
+            r.p.y += curr_dist * r.d.y;
+            r.p.z += curr_dist * r.d.z;
             ray_dist += curr_dist;
 
             if ( ray_dist > RAYS_MAX_DIST || I >= RAYS_MAX_COUNTER ) {
                 uchar3 COLOR = uchar3{ 0x00, 0x00, 0x00 };
-                uchar4 PIXEL = RGB_PIXEL( COLOR );
-                surf2Dwrite( PIXEL, image, x * 4, y );
+                PIXEL = RGB_PIXEL( COLOR );
                 break;
             }
         }
+
+        surf2Dwrite( PIXEL, image, x * 4, y );
     }
 }
 

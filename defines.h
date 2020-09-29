@@ -88,6 +88,8 @@ switch ( __SELF__->type ) {                                                     
 
 
 // RAYMARCHING
+#define RAYS_PRIMITIVES_PER_THREAD 2
+
 #define RAYS_BLOCK_1D_x 128
 
 #define RAYS_BLOCK_2D_x 16
