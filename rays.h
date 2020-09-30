@@ -74,17 +74,19 @@ typedef point( *norm_func )( bazo_ptr, const point& );
 
 enum object_type {
     type_nenio = 0x0000,
-    type_portanta_sfero,
+    type_portanta_sfero,        // BROKEN ILLUMINATION
     type_sfero,
     type_kubo,
     type_cilindro,
+    
+    type_ebeno = 0x0080,
 
     type_kunigajo_2 = 0x0100,
     type_kunigajo_3,
-    type_kunigajo_4,
+    type_kunigajo_4,            // YET NOT IMPLEMENTED
     type_komunajo_2,
     type_komunajo_3,
-    type_komunajo_4,
+    type_komunajo_4,            // YET NOT IMPLEMENTED
     type_komplemento,
     type_glata_kunigajo_2,
     type_glata_komunajo_2,
@@ -121,6 +123,8 @@ CREATE_OBJECT_TYPE_DESCRIPTION( portanta_sfero, struct { counter o; point t; sca
 CREATE_OBJECT_TYPE_DESCRIPTION( sfero, struct { scalar r; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( kubo, struct { point b; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( cilindro, struct { scalar r; scalar h; } )
+
+CREATE_OBJECT_TYPE_DESCRIPTION( ebeno, struct { point n; } )
 
 CREATE_OBJECT_TYPE_DESCRIPTION( kunigajo_2, struct { counter o[ 2 ]; } )
 CREATE_OBJECT_TYPE_DESCRIPTION( kunigajo_3, struct { counter o[ 3 ]; } )

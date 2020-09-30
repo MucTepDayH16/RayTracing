@@ -3,7 +3,14 @@
 // CUDA
 #define CUDA_SET_GRID(c,n) ( c - 1 ) / Block##n##d.c + 1
 #ifdef _DEBUG
-#define CUDA_ERROR(__ERROR__) std::cout << (__ERROR__) << '\t'
+#define CUDA_ERROR(__ERROR__) {                                                         \
+    cudaError_t err = ( __ERROR__ );                                                    \
+    if ( err )                                                                          \
+        std::cout <<                                                                    \
+            cudaGetErrorName( __ERROR__ ) << std::endl <<                               \
+            "\t: at line " << __LINE__ << std::endl <<                                  \
+            "\t: in file " << __FILE__ << std::endl << std::endl;                       \
+}
 #else
 #define CUDA_ERROR(__ERROR__) __ERROR__
 #endif // DEBUG
@@ -64,6 +71,8 @@ switch ( __SELF__->type ) {                                                     
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, kubo );                                  \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, cilindro );                              \
 \
+    CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, ebeno );                                 \
+\
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, kunigajo_2 );                            \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, kunigajo_3 );                            \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, kunigajo_4 );                            \
@@ -89,28 +98,26 @@ switch ( __SELF__->type ) {                                                     
 // RAYMARCHING
 #define RAYS_PRIMITIVES_PER_THREAD 2
 
-#define RAYS_BLOCK_1D_x 128
+#define RAYS_BLOCK_1D_x     128
 
-#define RAYS_BLOCK_2D_x 16
-#define RAYS_BLOCK_2D_y 8
+#define RAYS_BLOCK_2D_x     16
+#define RAYS_BLOCK_2D_y     8
 
-#define RAYS_BLOCK_3D_x 8
-#define RAYS_BLOCK_3D_y 4
-#define RAYS_BLOCK_3D_z 4
+#define RAYS_COORD_nD(c,n)  blockIdx.##c * RAYS_BLOCK_##n##D_##c + threadIdx.##c
 
-#define RAYS_COORD_nD(c,n) blockIdx.##c * RAYS_BLOCK_##n##D_##c + threadIdx.##c
+#define RAYS_MAX_COUNTER    1000
 
-#define RAYS_MAX_COUNTER 1000
+#define RAYS_MAX_DIST       10000.f
+#define RAYS_MIN_DIST       .01f
 
-#define RAYS_MAX_DIST 10000.f
-#define RAYS_MIN_DIST .01f
+#define RAYS_MAX_LUM        .9f
+#define RAYS_MIN_LUM        .1f
 
-#define RAYS_MAX_LUM .9f
-#define RAYS_MIN_LUM .0f
+#define RAYS_SHADOW         64.f
 
-#define KERNEL_PTR *__restrict__
+#define KERNEL_PTR          *__restrict__
 
-#define RGB_PIXEL(p) (uchar4{ (p.x), (p.y), (p.z), 0xff });
+#define RGB_PIXEL(p)        (uchar4{ (p.x), (p.y), (p.z), 0xff });
 
 #define length_2(x,y)       (hypotf((x),(y)))
 #define length_3(x,y,z)     (norm3df((x),(y),(z)))

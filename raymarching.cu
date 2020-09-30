@@ -61,11 +61,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         q.x = fabsf( p.x ) - data->b.x;
         q.y = fabsf( p.y ) - data->b.y;
         q.z = fabsf( p.z ) - data->b.z;
-        if ( q.x < 0.f && q.y < 0.f && q.z < 0.f )
-            return q.x > q.z ? ( q.x > q.y ? Point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
-        else
-            return q.x > q.z ? ( q.x > q.y ? Point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
-        //Point( q.x > 0.f ? ( p.x >= data->c.x ? 1.f : -1.f ) : 0.f, q.y > 0.f ? ( p.y >= data->c.y ? 1.f : -1.f ) : 0.f, q.z > 0.f ? ( p.z >= data->c.z ? 1.f : -1.f ) : 0.f );
+        return q.x > q.z ? ( q.x > q.y ? Point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? Point( 0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
     } );
 CREATE_OBJECT_TYPE_DEFINITION(
     cilindro,
@@ -84,13 +80,18 @@ CREATE_OBJECT_TYPE_DEFINITION(
         float2 q;
         q.x = r - data->r;
         q.y = fabsf( p.z ) - data->h;
-        if ( q.x < 0.f && q.y < 0.f )
-            return q.x > q.y ? Point( p.x, p.y, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f );
-        else
-            return q.x > q.y ? Point( p.x, p.y, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f );
-
+        
+        return q.x > q.y ? Point( p.x, p.y, 0.f ) : Point( 0.f, 0.f, p.z > 0.f ? 1.f : -1.f );
     } );
 
+CREATE_OBJECT_TYPE_DEFINITION(
+    ebeno,
+    {
+        return dot( data->n, p );
+    },
+    {
+        return data->n;
+    } );
 
 CREATE_OBJECT_TYPE_DEFINITION(
     kunigajo_2,
@@ -451,7 +452,6 @@ static start_init_rays_info *Info_d;
 
 static dim3 block_1d( RAYS_BLOCK_1D_x );
 static dim3 block_2d( RAYS_BLOCK_2D_x, RAYS_BLOCK_2D_y );
-static dim3 block_3d( RAYS_BLOCK_3D_x, RAYS_BLOCK_3D_y, RAYS_BLOCK_3D_z );
 
 static dim3 grid( size_t X ) {
     return dim3( ( X - 1 ) / RAYS_BLOCK_1D_x + 1 );
@@ -459,10 +459,6 @@ static dim3 grid( size_t X ) {
 
 static dim3 grid( size_t X, size_t Y ) {
     return dim3( ( X - 1 ) / RAYS_BLOCK_2D_x + 1, ( Y - 1 ) / RAYS_BLOCK_2D_y + 1 );
-}
-
-static dim3 grid( size_t X, size_t Y, size_t Z ) {
-    return dim3( ( X - 1 ) / RAYS_BLOCK_3D_x + 1, ( Y - 1 ) / RAYS_BLOCK_3D_y + 1, ( Z - 1 ) / RAYS_BLOCK_3D_z + 1 );
 }
 
 static __device__ __inline__ point mul_point( const point &p, const scalar &s ) {
@@ -578,13 +574,14 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
     if ( x < width && y < height ) {
         scalar curr_dist, ray_dist = 0;
         ray r = Rays[ y * width + x ];
-        uchar4 PIXEL;
+        uchar4 PIXEL = { 0x00, 0x00, 0x00, 0xff };
+        point curr_norm, light = *LightSource;
 
-        for ( size_t I = 0; true; ++I ) {
+#pragma unroll
+        for ( size_t I = 0; I < RAYS_MAX_COUNTER; ++I ) {
             curr_dist = RAYS_DIST( curr_ptr, r.p );
 
             if ( curr_dist < RAYS_MIN_DIST ) {
-                point curr_norm, light = *LightSource;
                 if ( curr_dist < 0.f ) {
                     curr_norm.x = -r.d.x;
                     curr_norm.y = -r.d.y;
@@ -594,10 +591,65 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
                 }
 
                 if ( dot( curr_norm, r.d ) < 0.f ) {
-                    scalar R_1 = r_length_3( curr_norm.x, curr_norm.y, curr_norm.z );
+                    scalar R_1 = r_length_3( curr_norm.x, curr_norm.y, curr_norm.z ), N_L;
+                    curr_norm = mul_point( curr_norm, R_1 );
+                    N_L = dot( curr_norm, light );
 
-                    uint8_t LIGHT = 0xff * ( RAYS_MIN_LUM + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + R_1 * dot( curr_norm, light ) ) );
-                    PIXEL = { LIGHT, LIGHT, LIGHT, 0xff };
+                    float
+                        AMBIENT = 1.f,
+                        SHADOW = 1.f, 
+                        OCCLUSION = 0.f, 
+                        SCA = 1.f;
+                    point p = r.p;
+
+                    ray_dist = RAYS_MIN_DIST;
+
+#pragma unroll
+                    for ( size_t J = 0; J < 5; ++J ) {
+                        curr_dist = RAYS_DIST( curr_ptr, p );
+                        OCCLUSION += ( ray_dist - curr_dist ) * SCA;
+                        SCA *= .95;
+
+                        p.x += .04 * curr_dist * curr_norm.x;
+                        p.y += .04 * curr_dist * curr_norm.y;
+                        p.z += .04 * curr_dist * curr_norm.z;
+                        ray_dist += curr_dist;
+                    }
+
+                    p = r.p;
+                    p.x += RAYS_MIN_DIST * light.x;
+                    p.y += RAYS_MIN_DIST * light.y;
+                    p.z += RAYS_MIN_DIST * light.z;
+                    ray_dist = RAYS_MIN_DIST;
+
+#pragma unroll
+                    for ( size_t J = 0; J < RAYS_MAX_COUNTER; ++J ) {
+                        curr_dist = RAYS_DIST( curr_ptr, p );
+
+                        if ( 10 * curr_dist < RAYS_MIN_DIST ) {
+                            // NO LIGHT
+                            SHADOW = 0x00;
+                            break;
+                        }
+
+                        SHADOW = min( SHADOW, RAYS_SHADOW * curr_dist / ray_dist );
+
+                        p.x += curr_dist * light.x;
+                        p.y += curr_dist * light.y;
+                        p.z += curr_dist * light.z;
+                        ray_dist += curr_dist;
+
+                        if ( ray_dist < RAYS_MAX_DIST ) {
+                            // LIGHT
+                            break;
+                        }
+                    }
+
+                    float3 MATERIAL = { 1.f, 1.f, 1.f };
+                    uint8_t LIGHT =
+                        //0xff * ( RAYS_MIN_LUM * () + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + R_1 * N_L ) );
+                        0xff * ( RAYS_MIN_LUM * AMBIENT * OCCLUSION + ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( N_L > 0.f ? N_L : 0.f ) * SHADOW );
+                    PIXEL = { LIGHT * MATERIAL.x, LIGHT * MATERIAL.y, LIGHT * MATERIAL.z, 0xff };
                     break;
                 }
             }
@@ -607,9 +659,7 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
             r.p.z += curr_dist * r.d.z;
             ray_dist += curr_dist;
 
-            if ( ray_dist > RAYS_MAX_DIST || I >= RAYS_MAX_COUNTER ) {
-                uchar3 COLOR = uchar3{ 0x00, 0x00, 0x00 };
-                PIXEL = RGB_PIXEL( COLOR );
+            if ( ray_dist >= RAYS_MAX_DIST ) {
                 break;
             }
         }

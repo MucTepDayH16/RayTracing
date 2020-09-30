@@ -112,10 +112,10 @@ int main( int argc, char **argv ) {
 
         // TUBARETKA
         //PrimitivesH.push_back(
-        //    primitives::senfina_ripeto::create_from( 1, 100.f, 500.f, 0.f )
+        //    primitives::senfina_ripeto::create_from( 1, 0.f, 500.f, 100.f )
         //);
         PrimitivesH.push_back(
-            primitives::portanta_sfero::create_from( 1, 200.f, 0.f, 0.f, 90.f )
+            primitives::movo::create_from( 1, 200.f, 0.f, 0.f )
         );
         PrimitivesH.push_back(
             primitives::rotacioQ::create_from( 1, w, r * d.x, r * d.y, r * d.z )
@@ -144,6 +144,20 @@ int main( int argc, char **argv ) {
         PrimitivesH.push_back(
             primitives::sfero::create_from( 40.f )
         );
+
+        // PLANE
+        //PrimitivesH.push_back(
+        //    primitives::kunigajo_2::create_from( 1, 2 )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::ebeno::create_from( 0.f, 0.f, 1.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::movo::create_from( 1, 0.f, 0.f, 50.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::kubo::create_from( 50.f, 50.f, 50.f )
+        //);
     }
 
     raymarching::start_init_rays_info InfoH;
@@ -208,6 +222,11 @@ int main( int argc, char **argv ) {
                     InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
                     InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
                     InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
+
+                    break;
+                case SDLK_r:
+                    raymarching::InitPrimitives( PrimitivesH, stream[ 0 ] );
+                    break;
                 }
                 break;
             case SDL_KEYUP:
@@ -249,13 +268,13 @@ int main( int argc, char **argv ) {
                 currMouse = SDL_Point{ Event.motion.x, Event.motion.y };
 
                 if ( MIDDLE_BUTTON ) {
-                    InfoH.StartPos.x -= ( currMouse.x - prevMouse.x ) * InfoH.StartWVec.x / scale;
-                    InfoH.StartPos.y -= ( currMouse.x - prevMouse.x ) * InfoH.StartWVec.y / scale;
-                    InfoH.StartPos.z -= ( currMouse.x - prevMouse.x ) * InfoH.StartWVec.z / scale;
-
-                    InfoH.StartPos.x -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.x / scale;
-                    InfoH.StartPos.y -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.y / scale;
-                    InfoH.StartPos.z -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.z / scale;
+                    float S = 2.f / scale;
+                    InfoH.StartPos.x -= ( currMouse.x - prevMouse.x ) * InfoH.StartWVec.x * S;
+                    InfoH.StartPos.y -= ( currMouse.x - prevMouse.x ) * InfoH.StartWVec.y * S;
+                    InfoH.StartPos.z -= ( currMouse.x - prevMouse.x ) * InfoH.StartWVec.z * S;
+                    InfoH.StartPos.x -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.x * S;
+                    InfoH.StartPos.y -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.y * S;
+                    InfoH.StartPos.z -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.z * S;
                 } else if ( RIGHT_BUTTON ) {
                     theta += ( currMouse.y - prevMouse.y ) * deg;
                     if ( theta > M_PI_2f )
@@ -293,7 +312,7 @@ int main( int argc, char **argv ) {
         cudaEventElapsedTime( &cuda_time, start, end );
 
         // Draw Scene
-        glBegin( GL_QUADS );
+        glBegin( GL_QUADS ); {
             glTexCoord2i( 0, 0 );
             glVertex2i( 0, 0 );
             glTexCoord2i( 1, 0 );
@@ -302,7 +321,7 @@ int main( int argc, char **argv ) {
             glVertex2i( Width, Height );
             glTexCoord2i( 0, 1 );
             glVertex2i( 0, Height );
-        glEnd();
+        } glEnd();
 
         // Scene update
         SDL_GL_SwapWindow( Win );

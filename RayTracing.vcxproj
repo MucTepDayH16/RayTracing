@@ -83,7 +83,7 @@
       <FastMath>true</FastMath>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <MaxRegCount>0</MaxRegCount>
-      <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
+      <InterleaveSourceInPTX>false</InterleaveSourceInPTX>
       <CudaRuntime>Shared</CudaRuntime>
     </CudaCompile>
   </ItemDefinitionGroup>
