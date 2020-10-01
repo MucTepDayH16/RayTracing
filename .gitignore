@@ -356,3 +356,6 @@ MigrationBackup/
 
 # NVidia Debugging files
 *.nvact
+
+# Binary scene files
+*.sce

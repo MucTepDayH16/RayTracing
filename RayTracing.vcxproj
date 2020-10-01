@@ -11,11 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="cuda.cu" />
-    <CudaCompile Include="primitives.cu" />
+    <None Include="cuda.cu">
+      <FileType>Document</FileType>
+    </None>
     <CudaCompile Include="raymarching.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="fileIO.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -159,4 +159,7 @@ int Load( point &LightSource, start_init_rays_info &Info, cudaStream_t stream = 
 bool ImageProcessing( size_t, cudaStream_t stream = 0 );
 bool Quit();
 
+int PrimitivesI( std::vector< primitives::bazo >&, const std::string& );
+int PrimitivesO( const std::vector< primitives::bazo >&, const std::string& );
+
 };

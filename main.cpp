@@ -9,9 +9,10 @@ using namespace std;
 
 int main( int argc, char **argv ) {
     size_t Width, Height;
+    string File;
 
     string arg;
-    bitset< 2 > correctInit;
+    bitset< 3 > correctInit;
     for ( int I = 1; I < argc; ++I ) {
         arg = argv[ I ];
         if ( arg.substr( 0, 2 ) == "--" ) {
@@ -19,10 +20,13 @@ int main( int argc, char **argv ) {
 
             if ( arg == "width" ) {
                 Width = atoi( argv[ ++I ] );
-                if ( Width ) correctInit ^= 0x01;
+                if ( Width ) correctInit ^= 1 << 0;
             } else if ( arg == "height" ) {
                 Height = atoi( argv[ ++I ] );
-                if ( Height ) correctInit ^= 0x02;
+                if ( Height ) correctInit ^= 1 << 1;
+            } else if ( arg == "input" ) {
+                File = argv[ ++I ];
+                if ( File.size() ) correctInit ^= 1 << 2;
             }
 
         } else if ( arg.substr( 0, 1 ) == "-" ) {
@@ -32,10 +36,9 @@ int main( int argc, char **argv ) {
         }
     }
 
-    if ( !correctInit.all() ) {
-        cout << "Wrong arguments!" << endl;
-        return 1;
-    }
+#ifdef _DEBUG
+    cout << File << endl;
+#endif
 
     size_t CudaStreamNum = 10;
     cudaStream_t *stream = new cudaStream_t[ CudaStreamNum ];
@@ -43,6 +46,11 @@ int main( int argc, char **argv ) {
         cudaStreamCreate( stream + i );
 
     SDL_Init( SDL_INIT_EVERYTHING );
+    SDL_DisplayMode DM;
+    SDL_GetCurrentDisplayMode( 0, &DM );
+    if ( !correctInit[ 0 ] ) Width = DM.w;
+    if ( !correctInit[ 1 ] ) Height = DM.h;
+
     SDL_Window *Win = SDL_CreateWindow(
         "GL",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -89,7 +97,9 @@ int main( int argc, char **argv ) {
 
     vector< primitives::bazo > PrimitivesH;
     PrimitivesH.reserve( RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD );
-    {
+    if ( correctInit[ 2 ] )
+        raymarching::PrimitivesI( PrimitivesH, File );
+    else {
         // INFINITY
         //PrimitivesH.push_back(
         //    primitives::komplemento::create_from( 1 )
@@ -114,36 +124,36 @@ int main( int argc, char **argv ) {
         //PrimitivesH.push_back(
         //    primitives::senfina_ripeto::create_from( 1, 0.f, 500.f, 100.f )
         //);
-        PrimitivesH.push_back(
-            primitives::movo::create_from( 1, 200.f, 0.f, 0.f )
-        );
-        PrimitivesH.push_back(
-            primitives::rotacioQ::create_from( 1, w, r * d.x, r * d.y, r * d.z )
-        );
-        PrimitivesH.push_back(
-            primitives::komunajo_2::create_from( 1, 2 )
-        );
-        PrimitivesH.push_back(
-            primitives::kubo::create_from( 50.f, 50.f, 50.f )
-        );
-        PrimitivesH.push_back(
-            primitives::komplemento::create_from( 1 )
-        );
-        PrimitivesH.push_back(
-            primitives::kunigajo_2::create_from( 1, 3 )
-        );
-        PrimitivesH.push_back(
-            primitives::movo::create_from( 1, 0.f, 0.f, -50.f )
-        );
-        PrimitivesH.push_back(
-            primitives::sfero::create_from( 60.f )
-        );
-        PrimitivesH.push_back(
-            primitives::movo::create_from( 1, 0.f, 0.f, 50.f )
-        );
-        PrimitivesH.push_back(
-            primitives::sfero::create_from( 40.f )
-        );
+        //PrimitivesH.push_back(
+        //    primitives::movo::create_from( 1, 200.f, 0.f, 0.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::rotacioQ::create_from( 1, w, r * d.x, r * d.y, r * d.z )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::komunajo_2::create_from( 1, 2 )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::kubo::create_from( 50.f, 50.f, 50.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::komplemento::create_from( 1 )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::kunigajo_2::create_from( 1, 3 )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::movo::create_from( 1, 0.f, 0.f, -50.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::sfero::create_from( 60.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::movo::create_from( 1, 0.f, 0.f, 50.f )
+        //);
+        //PrimitivesH.push_back(
+        //    primitives::sfero::create_from( 40.f )
+        //);
 
         // PLANE
         //PrimitivesH.push_back(
@@ -225,7 +235,11 @@ int main( int argc, char **argv ) {
 
                     break;
                 case SDLK_r:
+                    raymarching::PrimitivesI( PrimitivesH, File );
                     raymarching::InitPrimitives( PrimitivesH, stream[ 0 ] );
+                    break;
+                case SDLK_s:
+                    raymarching::PrimitivesO( PrimitivesH, File );
                     break;
                 }
                 break;

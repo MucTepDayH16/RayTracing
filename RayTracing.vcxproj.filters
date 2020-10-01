@@ -2,11 +2,11 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <CudaCompile Include="cuda.cu" />
-    <CudaCompile Include="primitives.cu" />
     <CudaCompile Include="raymarching.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="fileIO.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rays.h" />
