@@ -40,10 +40,11 @@ int main( int argc, char **argv ) {
     cout << File << endl;
 #endif
 
-    size_t CudaStreamNum = 10;
+    size_t CudaStreamNum = 1;
     cudaStream_t *stream = new cudaStream_t[ CudaStreamNum ];
-    for ( size_t i = 0; i < CudaStreamNum; ++i )
-        cudaStreamCreate( stream + i );
+    for ( size_t i = 0; i < CudaStreamNum; ++i ) {
+        cudaStreamCreateWithFlags( stream + i, cudaStreamNonBlocking );
+    }
 
     SDL_Init( SDL_INIT_EVERYTHING );
     SDL_DisplayMode DM;
@@ -55,7 +56,7 @@ int main( int argc, char **argv ) {
         "GL",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         Width, Height,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
+        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS );
     SDL_GLContext GL = SDL_GL_CreateContext( Win );
     glClearColor( 0.f, 0.f, 0.f, 1.f );
     glMatrixMode( GL_PROJECTION );

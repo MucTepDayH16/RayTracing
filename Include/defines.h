@@ -99,9 +99,11 @@ switch ( __SELF__->type ) {                                                     
 #define RAYS_PRIMITIVES_PER_THREAD 2
 
 #define RAYS_BLOCK_1D_x     128
+#define RAYS_BLOCK_1D       dim3( RAYS_BLOCK_1D_x )
 
 #define RAYS_BLOCK_2D_x     16
 #define RAYS_BLOCK_2D_y     8
+#define RAYS_BLOCK_2D       dim3( RAYS_BLOCK_2D_x, RAYS_BLOCK_2D_y )
 
 #define RAYS_COORD_nD(c,n)  blockIdx.##c * RAYS_BLOCK_##n##D_##c + threadIdx.##c
 

@@ -449,10 +449,6 @@ static size_t PrimitivesNum;
 static ray *Rays_d;
 static start_init_rays_info *Info_d;
 
-
-static dim3 block_1d( RAYS_BLOCK_1D_x );
-static dim3 block_2d( RAYS_BLOCK_2D_x, RAYS_BLOCK_2D_y );
-
 static dim3 grid( size_t X ) {
     return dim3( ( X - 1 ) / RAYS_BLOCK_1D_x + 1 );
 }
@@ -500,7 +496,7 @@ int InitPrimitives( std::vector< primitives::bazo > &Primitives, cudaStream_t st
     CUDA_ERROR( cudaMalloc( &Primitives_d, PrimitivesNum * sizeof primitives::bazo ) );
     CUDA_ERROR( cudaMemcpyAsync( Primitives_d, Primitives.data(), PrimitivesNum * sizeof primitives::bazo, cudaMemcpyHostToDevice, stream ) );
 
-    kernelInitPrimitives <<< grid( PrimitivesNum ), block_1d, 0, stream >>> ( Primitives_d, PrimitivesNum );
+    kernelInitPrimitives <<< grid( PrimitivesNum ), RAYS_BLOCK_1D, 0, stream >>> ( Primitives_d, PrimitivesNum );
     CUDA_ERROR( cudaStreamSynchronize( stream ) );
 
     return 1;
@@ -544,12 +540,8 @@ static __global__ void kernelLoad( start_init_rays_info KERNEL_PTR Info_d, ray K
 
 int Load( point &LightSource, start_init_rays_info &Info, cudaStream_t stream ) {
     CUDA_ERROR( cudaMemcpyAsync( LightSource_d, &LightSource, sizeof point, cudaMemcpyHostToDevice, stream ) );
-
     CUDA_ERROR( cudaMemcpyAsync( Info_d, &Info, sizeof start_init_rays_info, cudaMemcpyHostToDevice, stream ) );
-
-    kernelLoad <<< grid( Width, Height ), block_2d, 0, stream >>> ( Info_d, Rays_d );
-    CUDA_ERROR( cudaStreamSynchronize( stream ) );
-
+    kernelLoad <<< grid( Width, Height ), RAYS_BLOCK_2D, 0, stream >>> ( Info_d, Rays_d );
     return 1;
 }
 
@@ -669,9 +661,9 @@ static __global__ void kernelImageProcessing( cudaSurfaceObject_t image, size_t 
 }
 
 bool ImageProcessing( size_t time, cudaStream_t stream ) {
-    kernelImageProcessing <<< grid( Width, Height ), block_2d, 0, stream >>>
+    kernelImageProcessing <<< grid( Width, Height ), RAYS_BLOCK_2D, 0, stream >>>
         ( Surface_d, Width, Height, time, Rays_d, LightSource_d, Primitives_d, PrimitivesNum );
-    CUDA_ERROR( cudaStreamSynchronize( stream ) );
+    //CUDA_ERROR( cudaStreamSynchronize( stream ) );
     return true;
 }
 

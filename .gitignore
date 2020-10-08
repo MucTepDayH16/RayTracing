@@ -359,3 +359,9 @@ MigrationBackup/
 
 # Binary scene files
 *.sce
+
+# CLion cache
+.idea
+
+# CMake cache
+cmake*
