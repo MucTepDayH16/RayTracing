@@ -1,16 +1,14 @@
 # RayTracing
 
-#### About
+## About
 3d visualizer, using raymarching technology to draw vectorized primitives
 
-___
-#### Dependencies
+## Dependencies
 
 * NVidia GPU and CUDA toolkit (*CUDA>=11.0.197*)
 * Simple DirectMedia Layer library (*SDL>=2.0.12*)
 
-___
-#### Building
+## Building
 
 Before building CUDA based application, you need to figure out your NVidia GPU's compute capability. 
 You can determine your Compute Capability (CC) from the list:
@@ -33,8 +31,7 @@ To build the application I will enter next commands in shell:
     cmake -B./Build -DCUDA_ARCH=61 -DCMAKE_BUILD_TYPE=Release .
     cmake --build ./Build --target all
 
-___
-#### Execution
+## Execution
 
 In Windows you need to add `SDL2.dll` runtime library to `./Build` directory. 
 It is located in `./SDL2extra/win_x64` or `./SL2extra/win_x86`, depening on your system.
@@ -44,8 +41,7 @@ Run command `./Build/RayTracing` (in Windows - `./Build/RayTracing.exe`) with ar
 * `--height HEIGHT` - replace `HEIGHT` with your desired window height;
 * `--input FILE` - specify desired scene. Template scenes are located in `./Scenes` directory.
 
-___
-#### Future Work
+## Future Work
 
 * To add more template scenes and scene creator;
 * To add better illumination and materials;
