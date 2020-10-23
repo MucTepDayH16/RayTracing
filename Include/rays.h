@@ -7,9 +7,9 @@
 #include <iomanip>
 #include <iostream>
 
-#include <SDL2\SDL.h>
-#include <SDL2\SDL_image.h>
-#include <SDL2\SDL_opengl.h>
+#include <SDL.h>
+#include <SDL_image.h>
+#include <SDL_opengl.h>
 
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
@@ -106,7 +106,7 @@ static __device__ __inline__ point mul_point( const point& p, const scalar& s ) 
 template< typename __TYPE__ >
 union byte_cast {
     __TYPE__ data;
-    byte source[ sizeof __TYPE__ ];
+    byte source[ sizeof(__TYPE__) ];
 };
 
 static const size_t bazo_payload_size = 24;

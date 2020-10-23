@@ -349,6 +349,10 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
+# Visual Studio solutions and projects
+*.sln*
+*.vsxproj*
+
 # Temporary pictures
 *.png
 *.jpg
@@ -358,7 +362,7 @@ MigrationBackup/
 *.nvact
 
 # Binary scene files
-*.sce
+#*.sce
 
 # CLion cache
 .idea

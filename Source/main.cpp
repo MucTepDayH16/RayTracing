@@ -3,7 +3,7 @@
 constexpr float M_SQRT1_5f{ .447213595499957939281f };
 constexpr float M_PI_2f{ 1.57079632679489661923f };
 
-#include "rays.h"
+#include <rays.h>
 
 using namespace std;
 

@@ -52,10 +52,12 @@ public:                                                                         
 __device__ __forceinline__ scalar __TYPE__##::dist( bazo_ptr obj, const point &p ) {    \
     data_struct *data = reinterpret_cast<data_struct*>( obj->data );                    \
     __DIST__                                                                            \
+    (void)data;                                                                         \
 }                                                                                       \
 __device__ __forceinline__ point __TYPE__##::norm( bazo_ptr obj, const point &p ) {     \
     data_struct *data = reinterpret_cast<data_struct*>( obj->data );                    \
     __NORM__                                                                            \
+    (void)data;                                                                         \
 }
 
 #define CREATE_OBJECT_TYPE_PROCESSING_2(__SELF__,__TYPE__)                              \
