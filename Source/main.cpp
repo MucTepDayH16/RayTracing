@@ -3,7 +3,7 @@
 constexpr float M_SQRT1_5f{ .447213595499957939281f };
 constexpr float M_PI_2f{ 1.57079632679489661923f };
 
-#include <rays.h>
+#include <cuda_rays.cuh>
 
 using namespace std;
 
@@ -35,16 +35,7 @@ int main( int argc, char **argv ) {
                 }
         }
     }
-
-#ifdef _DEBUG
-    cout << File << endl;
-#endif
-
-    size_t CudaStreamNum = 1;
-    cudaStream_t *stream = new cudaStream_t[ CudaStreamNum ];
-    for ( size_t i = 0; i < CudaStreamNum; ++i ) {
-        cudaStreamCreateWithFlags( stream + i, cudaStreamNonBlocking );
-    }
+    
 
     SDL_Init( SDL_INIT_EVERYTHING );
     SDL_DisplayMode DM;
@@ -66,6 +57,12 @@ int main( int argc, char **argv ) {
     glEnable( GL_TEXTURE_2D );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
+    SDL_Event Event;
+    SDL_Point currMouse{ 0, 0 }, prevMouse;
+    
+    null::raymarching* CUDA = new cuda::raymarching;
+    CUDA->Init( Width, Height );
+    
     GLuint tex;
     glGenTextures( 1, &tex );
     glBindTexture( GL_TEXTURE_2D, tex );
@@ -73,32 +70,9 @@ int main( int argc, char **argv ) {
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, Width, Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
 
-    cudaGraphicsResource *res;
-    cudaGraphicsGLRegisterImage( &res, tex, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore );
-    cudaGraphicsMapResources( 1, &res, stream[ 0 ] );
+    CUDA->SetTexture( tex );
 
-    cudaArray_t pixels_d;
-    cudaGraphicsSubResourceGetMappedArray( &pixels_d, res, 0, 0 );
-
-    cudaResourceDesc desc;
-    desc.resType = cudaResourceTypeArray;
-    desc.res.array.array = pixels_d;
-
-    cudaSurfaceObject_t SurfD;
-    cudaCreateSurfaceObject( &SurfD, &desc );
-
-    SDL_Event Event;
-
-    cudaEvent_t start, end;
-    cudaEventCreate( &start );
-    cudaEventCreate( &end );
-
-
-    float3 LightingSourceH = float3{ -2.f * M_SQRT1_5f, 0.f, M_SQRT1_5f };
-
-    vector< primitives::bazo > PrimitivesH;
-    PrimitivesH.reserve( RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD );
-    if ( correctInit[ 2 ] )
+    /*if ( correctInit[ 2 ] )
         raymarching::PrimitivesI( PrimitivesH, File );
     else {
         // INFINITY
@@ -169,32 +143,43 @@ int main( int argc, char **argv ) {
         //PrimitivesH.push_back(
         //    primitives::kubo::create_from( 50.f, 50.f, 50.f )
         //);
-    }
+    }*/
+    point d{ 1.f, 30.f, 1.f };
+    float alpha = -1.8f, w = cosf( alpha / 2.f ), r = sinf( alpha / 2.f ) / sqrtf( d.x * d.x + d.y * d.y + d.z * d.z );
+    
+    CUDA->ReservePrimitives( RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD );
+    CUDA->AddPrimitive( cuda::senfina_ripeto::create_from( 1, 0.f, 500.f, 100.f ) );
+    CUDA->AddPrimitive( cuda::movo::create_from( 1, 200.f, 0.f, 0.f ) );
+    CUDA->AddPrimitive( cuda::rotacioQ::create_from( 1, w, r * d.x, r * d.y, r * d.z ) );
+    CUDA->AddPrimitive( cuda::komunajo_2::create_from( 1, 2 ) );
+    CUDA->AddPrimitive( cuda::kubo::create_from( 50.f, 50.f, 50.f ) );
+    CUDA->AddPrimitive( cuda::komplemento::create_from( 1 ) );
+    CUDA->AddPrimitive( cuda::kunigajo_2::create_from( 1, 3 ) );
+    CUDA->AddPrimitive( cuda::movo::create_from( 1, 0.f, 0.f, -50.f ) );
+    CUDA->AddPrimitive( cuda::sfero::create_from( 60.f ) );
+    CUDA->AddPrimitive( cuda::movo::create_from( 1, 0.f, 0.f, 50.f ) );
+    CUDA->AddPrimitive( cuda::sfero::create_from( 40.f ) );
+    CUDA->SetPrimitives();
 
-    raymarching::start_init_rays_info InfoH;
-    InfoH.Width = Width;
-    InfoH.Height = Height;
-    InfoH.Depth = 1000;//( Width + Height ) / 2;
-    InfoH.StartPos = float3{ 0.f, 0.f, 0.f };
-
-    SDL_Point currMouse{ 0, 0 }, prevMouse;
-
-    raymarching::Init( Width, Height, SurfD );
-    raymarching::InitPrimitives( PrimitivesH, stream[ 0 ] );
-
-    float cuda_time = 0.f, step = 20.f, fps = INFINITY;
     float scale = powf( 2.f, -6.1f ), theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
     float cos_1 = cosf( M_PI / 180.f ), sin_1 = sinf( M_PI / 180.f ), deg = M_PI / 360.f;
-    bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false;
-
-    InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
-    InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
-    InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
-
-
-    for ( size_t run = true, this_time = SDL_GetTicks(), prev_time = this_time;
+    
+    rays_info Info_h = {
+            .Depth = 1000,
+            .LightSource = point{ -2.f * M_SQRT1_5f, 0.f, M_SQRT1_5f },
+            .StartPos = point{ 0.f, 0.f, 0.f },
+            .StartDir = point{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta },
+            .StartWVec = point{ scale * sin_phi, -scale * cos_phi, 0.f },
+            .StartHVec = point{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta }
+    };
+    
+    CUDA->SetInfo( Info_h );
+    
+    size_t compute_time = 0, this_time, prev_time;
+    bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false, run;
+    for ( run = true, this_time = SDL_GetTicks(), prev_time = this_time;
           run;
-          prev_time = this_time, this_time = SDL_GetTicks(), fps = this_time == prev_time ? 0 : 1000.f / ( this_time - prev_time ) ) {
+          prev_time = this_time, this_time = SDL_GetTicks() ) {
         // Event polling
         while ( SDL_PollEvent( &Event ) ) {
             switch ( Event.type ) {
@@ -207,17 +192,17 @@ int main( int argc, char **argv ) {
                     run = false;
                     break;
                 case SDLK_LEFT:
-                    LightingSourceH = float3{
-                        cos_1 * LightingSourceH.x - sin_1 * LightingSourceH.y,
-                        sin_1 * LightingSourceH.x + cos_1 * LightingSourceH.y,
-                        LightingSourceH.z
+                    Info_h.LightSource = point{
+                        cos_1 * Info_h.LightSource.x - sin_1 * Info_h.LightSource.y,
+                        sin_1 * Info_h.LightSource.x + cos_1 * Info_h.LightSource.y,
+                        Info_h.LightSource.z
                     };
                     break;
                 case SDLK_RIGHT:
-                    LightingSourceH = float3{
-                        cos_1 * LightingSourceH.x + sin_1 * LightingSourceH.y,
-                        -sin_1 * LightingSourceH.x + cos_1 * LightingSourceH.y,
-                        LightingSourceH.z
+                    Info_h.LightSource = point{
+                        cos_1 * Info_h.LightSource.x + sin_1 * Info_h.LightSource.y,
+                        -sin_1 * Info_h.LightSource.x + cos_1 * Info_h.LightSource.y,
+                        Info_h.LightSource.z
                     };
                     break;
                 case SDLK_SPACE:
@@ -229,18 +214,11 @@ int main( int argc, char **argv ) {
                     cos_phi = 1.f;
                     sin_phi = 0.f;
 
-                    InfoH.StartPos = float3{ 0.f, 0.f, 0.f };
-                    InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
-                    InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
-                    InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
+                    Info_h.StartPos = point{ 0.f, 0.f, 0.f };
+                    Info_h.StartDir = point{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
+                    Info_h.StartWVec = point{ scale * sin_phi, -scale * cos_phi, 0.f };
+                    Info_h.StartHVec = point{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
 
-                    break;
-                case SDLK_r:
-                    raymarching::PrimitivesI( PrimitivesH, File );
-                    raymarching::InitPrimitives( PrimitivesH, stream[ 0 ] );
-                    break;
-                case SDLK_s:
-                    raymarching::PrimitivesO( PrimitivesH, File );
                     break;
                 }
                 break;
@@ -273,9 +251,9 @@ int main( int argc, char **argv ) {
             case SDL_MOUSEWHEEL:
                 scale *= powf( 2.f, float( Event.wheel.y ) * .1f );
 
-                InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
-                InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
-                InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
+                Info_h.StartDir = point{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
+                Info_h.StartWVec = point{ scale * sin_phi, -scale * cos_phi, 0.f };
+                Info_h.StartHVec = point{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
 
                 break;
             case SDL_MOUSEMOTION:
@@ -284,14 +262,14 @@ int main( int argc, char **argv ) {
 
                 if ( MIDDLE_BUTTON ) {
                     float S = 2.f / scale;
-                    InfoH.StartPos.x -= ( currMouse.x - prevMouse.x ) * InfoH.StartWVec.x * S;
-                    InfoH.StartPos.y -= ( currMouse.x - prevMouse.x ) * InfoH.StartWVec.y * S;
-                    InfoH.StartPos.z -= ( currMouse.x - prevMouse.x ) * InfoH.StartWVec.z * S;
-                    InfoH.StartPos.x -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.x * S;
-                    InfoH.StartPos.y -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.y * S;
-                    InfoH.StartPos.z -= ( currMouse.y - prevMouse.y ) * InfoH.StartHVec.z * S;
+                    Info_h.StartPos.x -= float( currMouse.x - prevMouse.x ) * Info_h.StartWVec.x * S;
+                    Info_h.StartPos.y -= float( currMouse.x - prevMouse.x ) * Info_h.StartWVec.y * S;
+                    Info_h.StartPos.z -= float( currMouse.x - prevMouse.x ) * Info_h.StartWVec.z * S;
+                    Info_h.StartPos.x -= float( currMouse.y - prevMouse.y ) * Info_h.StartHVec.x * S;
+                    Info_h.StartPos.y -= float( currMouse.y - prevMouse.y ) * Info_h.StartHVec.y * S;
+                    Info_h.StartPos.z -= float( currMouse.y - prevMouse.y ) * Info_h.StartHVec.z * S;
                 } else if ( RIGHT_BUTTON ) {
-                    theta += ( currMouse.y - prevMouse.y ) * deg;
+                    theta += float( currMouse.y - prevMouse.y ) * deg;
                     if ( theta > M_PI_2f )
                         theta = M_PI_2f;
                     else if ( theta < -M_PI_2f )
@@ -299,32 +277,28 @@ int main( int argc, char **argv ) {
                     cos_theta = cosf( theta );
                     sin_theta = sinf( theta );
 
-                    phi += ( currMouse.x - prevMouse.x ) * deg;
+                    phi += float( currMouse.x - prevMouse.x ) * deg;
                     cos_phi = cosf( phi );
                     sin_phi = sinf( phi );
                 }
 
-                InfoH.StartDir = float3{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
-                InfoH.StartWVec = float3{ scale * sin_phi, -scale * cos_phi, 0.f };
-                InfoH.StartHVec = float3{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
+                Info_h.StartDir = point{ scale * cos_theta * cos_phi, scale * cos_theta * sin_phi, scale * sin_theta };
+                Info_h.StartWVec = point{ scale * sin_phi, -scale * cos_phi, 0.f };
+                Info_h.StartHVec = point{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
 
                 break;
             }
         }
 
-        LightingSourceH = float3{
-            cos_1 * LightingSourceH.x - sin_1 * LightingSourceH.y,
-            sin_1 * LightingSourceH.x + cos_1 * LightingSourceH.y,
-            LightingSourceH.z
+        Info_h.LightSource = point{
+            cos_1 * Info_h.LightSource.x - sin_1 * Info_h.LightSource.y,
+            sin_1 * Info_h.LightSource.x + cos_1 * Info_h.LightSource.y,
+            Info_h.LightSource.z
         };
 
         // Render Scene
-        cudaEventRecord( start, stream[ 0 ] );
-        raymarching::Load( LightingSourceH, InfoH, stream[ 0 ] );
-        raymarching::ImageProcessing( ( 256 * this_time ) / 1000, stream[ 0 ] );
-        cudaEventRecord( end, stream[ 0 ] );
-        cudaStreamSynchronize( stream[ 0 ] );
-        cudaEventElapsedTime( &cuda_time, start, end );
+        CUDA->SetInfo( Info_h );
+        compute_time = CUDA->Process();
 
         // Draw Scene
         glBegin( GL_QUADS ); {
@@ -341,15 +315,13 @@ int main( int argc, char **argv ) {
         // Scene update
         SDL_GL_SwapWindow( Win );
 #ifndef _DEBUG
-        cout << "\rFrame time : " << size_t( this_time - prev_time ) << "ms  \t\tTask execution time : " << size_t( cuda_time ) << "ms  " << flush;
+        cout << "\rFrame time : " << size_t( this_time - prev_time ) << "ms  \t\tTask execution time : " << compute_time << "ms  " << flush;
 #endif
     }
 
 
-    raymarching::Quit();
+    CUDA->Quit();
 
-    cudaDestroySurfaceObject( SurfD );
-    cudaGraphicsUnmapResources( 1, &res, stream[ 0 ] );
     SDL_GL_DeleteContext( GL );
     SDL_DestroyWindow( Win );
 
