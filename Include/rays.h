@@ -67,24 +67,22 @@ enum object_type {
     type_senfina_ripeto
 };
 
-// static __device__ __inline__ point mul_point( const point& p, const scalar& s ) {
-//     return point{ s * p.x, s * p.y, s * p.z };
-// }
-
-template< typename __TYPE__ >
-union byte_cast {
-    __TYPE__ data;
-    raw_byte source[ sizeof(__TYPE__) ];
-};
-
-static const size_t bazo_payload_size = 24;
 struct bazo {
-    raw_byte data[ bazo_payload_size ];
+    enum object_type type;
+    raw_byte data[ PRIMITIVE_PAYLOAD ];
     dist_func dist;
     norm_func norm;
-    enum object_type type;
-    bazo( enum object_type _type = type_nenio ) : type( _type ), dist( nullptr ), norm( nullptr ) {}
+    explicit bazo( enum object_type _type = type_nenio ) : type( _type ), data{}, dist( nullptr ), norm( nullptr ) {
+        memset( data, 0x00, PRIMITIVE_PAYLOAD );
+    }
 };
+
+template<typename ARG>
+bazo create( enum object_type _type, ARG *arg ) {
+    primitives::bazo NEW( _type );
+    memcpy( NEW.data, arg, sizeof( ARG ) );
+    return NEW;
+}
 
 };
 

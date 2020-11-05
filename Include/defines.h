@@ -13,28 +13,9 @@
 class __TYPE__ {                                                                                    \
 protected:                                                                                          \
     typedef __STRUCT__ data_struct;                                                                 \
-    template< typename ARG0, typename... ARGN >                                                     \
-    static __host__ ::primitives::bazo_ptr emplace( raw_byte *data, ARG0 arg, ARGN... args ) {          \
-        memcpy( data, &arg, sizeof ARG0 );                                                          \
-        return emplace( data + sizeof ARG0, args... );                                              \
-    }                                                                                               \
-    template< typename ARG0 >                                                                       \
-    static __host__ primitives::bazo_ptr emplace( raw_byte *data, ARG0 arg ) {                          \
-        memcpy( data, &arg, sizeof ARG0 );                                                          \
-        return nullptr;                                                                             \
-    }                                                                                               \
 public:                                                                                             \
-    template< typename... ARGN >                                                                    \
-    static __host__ primitives::bazo create_from( ARGN... args ) {                                  \
-        data_struct NEW;                                                                            \
-        memset( &NEW, 0x00, sizeof data_struct );                                                   \
-        emplace( reinterpret_cast< raw_byte* >( &NEW ), args... );                                      \
-        return create( NEW );                                                                       \
-    }                                                                                               \
-    static __host__ primitives::bazo __TYPE__##::create( data_struct &data ) {                      \
-        primitives::bazo NEW( primitives::type_##__TYPE__ );                                        \
-        memcpy( NEW.data, &data, sizeof data_struct );                                              \
-        return NEW;                                                                                 \
+    static __host__ primitives::bazo create_from( data_struct data ) {                              \
+        return primitives::create( primitives::type_##__TYPE__, &data );                            \
     }                                                                                               \
     static __device__ __forceinline__ scalar dist( primitives::bazo_ptr, const point& p );          \
     static __device__ __forceinline__ point norm( primitives::bazo_ptr, const point& p );           \
@@ -91,19 +72,21 @@ switch ( __SELF__->type ) {                                                     
 
 
 // RAYMARCHING
+#define PRIMITIVE_PAYLOAD           24
+
 #define RAYS_PRIMITIVES_PER_THREAD 2
 
-#define RAYS_BLOCK_1D_x     128
+#define RAYS_BLOCK_1D_x             128
 
-#define RAYS_BLOCK_2D_x     16
-#define RAYS_BLOCK_2D_y     8
+#define RAYS_BLOCK_2D_x             16
+#define RAYS_BLOCK_2D_y             8
 
-#define RAYS_MAX_COUNTER    1000
+#define RAYS_MAX_COUNTER            1000
 
-#define RAYS_MAX_DIST       10000.f
-#define RAYS_MIN_DIST       .01f
+#define RAYS_MAX_DIST               10000.f
+#define RAYS_MIN_DIST               .01f
 
-#define RAYS_MAX_LUM        .9f
-#define RAYS_MIN_LUM        .1f
+#define RAYS_MAX_LUM                .9f
+#define RAYS_MIN_LUM                .1f
 
-#define RAYS_SHADOW         64.f
+#define RAYS_SHADOW                 64.f

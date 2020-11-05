@@ -1,7 +1,8 @@
 #include "cuda_rays.cuh"
 #include <cuda_device_runtime_api.h>
 
-#define _KERNEL             __global__ void
+#define _MATH               static __device__ __forceinline__
+#define _KERNEL             static __global__ void
 #define _PTR                *__restrict__
 
 #define _CUDA(__ERROR__)    {_last_cuda_error = cudaError_t(__ERROR__); CUDA_CHECK(_last_cuda_error);}
@@ -25,27 +26,27 @@ namespace cuda {
 namespace kernel {
 
 
-static __device__ __inline__ point new_point( const scalar &x, const scalar &y, const scalar &z ) {
+_MATH point new_point( const scalar &x, const scalar &y, const scalar &z ) {
     return point{ x, y, z };
 }
 
-static __device__ __inline__ point mul_point( const point &p, const scalar &s ) {
+_MATH point mul_point( const point &p, const scalar &s ) {
     return point{ s * p.x, s * p.y, s * p.z };
 }
 
-static __device__ __inline__ point add_point( const point &p1, const point &p2 ) {
+_MATH point add_point( const point &p1, const point &p2 ) {
     return point{ p1.x + p2.x, p1.y + p2.y, p1.z + p2.z };
 }
 
-static __device__ __inline__ scalar dot( const point &p1, const point &p2 ) {
+_MATH scalar dot( const point &p1, const point &p2 ) {
     return p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 }
 
-static __device__ __inline__ scalar mix( const scalar &a, const scalar &b, const scalar &x ) {
+_MATH scalar mix( const scalar &a, const scalar &b, const scalar &x ) {
     return a + x * ( b - a );
 }
 
-static _KERNEL Process( size_t Width, size_t Height, rays_info _PTR Info_d, ray _PTR Rays,
+_KERNEL Process( size_t Width, size_t Height, rays_info _PTR Info_d, ray _PTR Rays,
                         primitives::bazo _PTR Primitives_d, size_t PrimitivesNum, cudaSurfaceObject_t Image ) {
     size_t  x = CUDA_RAYS_COORD_nD( x, 2 ),
             y = CUDA_RAYS_COORD_nD( y, 2 ),
@@ -166,7 +167,7 @@ static _KERNEL Process( size_t Width, size_t Height, rays_info _PTR Info_d, ray 
     }
 }
 
-static _KERNEL SetPrimitives( primitives::bazo _PTR Primitives, size_t PrimitivesNum ) {
+_KERNEL SetPrimitives( primitives::bazo _PTR Primitives, size_t PrimitivesNum ) {
     size_t x = CUDA_RAYS_COORD_nD( x, 1 );
     
     if ( x < PrimitivesNum ) {
@@ -175,7 +176,7 @@ static _KERNEL SetPrimitives( primitives::bazo _PTR Primitives, size_t Primitive
     }
 }
 
-static _KERNEL SetRays( size_t Width, size_t Height, rays_info _PTR Info_d, ray _PTR Rays_d ) {
+_KERNEL SetRays( size_t Width, size_t Height, rays_info _PTR Info_d, ray _PTR Rays_d ) {
     int64_t
         x = CUDA_RAYS_COORD_nD( x, 2 ),
         y = CUDA_RAYS_COORD_nD( y, 2 );

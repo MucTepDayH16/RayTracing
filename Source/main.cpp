@@ -37,6 +37,7 @@ int main( int argc, char **argv ) {
     }
     
 
+    // SDL setup
     SDL_Init( SDL_INIT_EVERYTHING );
     SDL_DisplayMode DM;
     SDL_GetCurrentDisplayMode( 0, &DM );
@@ -60,6 +61,8 @@ int main( int argc, char **argv ) {
     SDL_Event Event;
     SDL_Point currMouse{ 0, 0 }, prevMouse;
     
+    
+    // Compute environment setup
     null::raymarching* CUDA = new cuda::raymarching;
     CUDA->Init( Width, Height );
     
@@ -69,96 +72,24 @@ int main( int argc, char **argv ) {
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, Width, Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
-
     CUDA->SetTexture( tex );
-
-    /*if ( correctInit[ 2 ] )
-        raymarching::PrimitivesI( PrimitivesH, File );
-    else {
-        // INFINITY
-        //PrimitivesH.push_back(
-        //    primitives::komplemento::create_from( 1 )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::senfina_ripeto::create_from( 1, 0.f, 0.f, 100.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::senfina_ripeto::create_from( 1, 0.f, 100.f, 0.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::senfina_ripeto::create_from( 1, 100.f, 0.f, 0.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::sfero::create_from( 65.f )
-        //);
-
-        float3 d{ 1.f, 30.f, 1.f };
-        float theta = -1.8f, w = cosf( theta / 2.f ), r = sinf( theta / 2.f ) / sqrtf( d.x * d.x + d.y * d.y + d.z * d.z );
-
-        // TUBARETKA
-        //PrimitivesH.push_back(
-        //    primitives::senfina_ripeto::create_from( 1, 0.f, 500.f, 100.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::movo::create_from( 1, 200.f, 0.f, 0.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::rotacioQ::create_from( 1, w, r * d.x, r * d.y, r * d.z )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::komunajo_2::create_from( 1, 2 )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::kubo::create_from( 50.f, 50.f, 50.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::komplemento::create_from( 1 )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::kunigajo_2::create_from( 1, 3 )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::movo::create_from( 1, 0.f, 0.f, -50.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::sfero::create_from( 60.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::movo::create_from( 1, 0.f, 0.f, 50.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::sfero::create_from( 40.f )
-        //);
-
-        // PLANE
-        //PrimitivesH.push_back(
-        //    primitives::kunigajo_2::create_from( 1, 2 )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::ebeno::create_from( 0.f, 0.f, 1.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::movo::create_from( 1, 0.f, 0.f, 50.f )
-        //);
-        //PrimitivesH.push_back(
-        //    primitives::kubo::create_from( 50.f, 50.f, 50.f )
-        //);
-    }*/
+    
+    
     point d{ 1.f, 30.f, 1.f };
     float alpha = -1.8f, w = cosf( alpha / 2.f ), r = sinf( alpha / 2.f ) / sqrtf( d.x * d.x + d.y * d.y + d.z * d.z );
     
     CUDA->ReservePrimitives( RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD );
-    CUDA->AddPrimitive( cuda::senfina_ripeto::create_from( 1, 0.f, 500.f, 100.f ) );
-    CUDA->AddPrimitive( cuda::movo::create_from( 1, 200.f, 0.f, 0.f ) );
-    CUDA->AddPrimitive( cuda::rotacioQ::create_from( 1, w, r * d.x, r * d.y, r * d.z ) );
-    CUDA->AddPrimitive( cuda::komunajo_2::create_from( 1, 2 ) );
-    CUDA->AddPrimitive( cuda::kubo::create_from( 50.f, 50.f, 50.f ) );
-    CUDA->AddPrimitive( cuda::komplemento::create_from( 1 ) );
-    CUDA->AddPrimitive( cuda::kunigajo_2::create_from( 1, 3 ) );
-    CUDA->AddPrimitive( cuda::movo::create_from( 1, 0.f, 0.f, -50.f ) );
-    CUDA->AddPrimitive( cuda::sfero::create_from( 60.f ) );
-    CUDA->AddPrimitive( cuda::movo::create_from( 1, 0.f, 0.f, 50.f ) );
-    CUDA->AddPrimitive( cuda::sfero::create_from( 40.f ) );
+    CUDA->AddPrimitive( cuda::senfina_ripeto::create_from( { 1, 0.f, 500.f, 100.f } ) );
+    CUDA->AddPrimitive( cuda::movo::create_from( { 1, 200.f, 0.f, 0.f } ) );
+    CUDA->AddPrimitive( cuda::rotacioQ::create_from( { 1, w, r * d.x, r * d.y, r * d.z } ) );
+    CUDA->AddPrimitive( cuda::komunajo_2::create_from( { 1, 2 } ) );
+    CUDA->AddPrimitive( cuda::kubo::create_from( { 50.f, 50.f, 50.f } ) );
+    CUDA->AddPrimitive( cuda::komplemento::create_from( { 1 } ) );
+    CUDA->AddPrimitive( cuda::kunigajo_2::create_from( { 1, 3 } ) );
+    CUDA->AddPrimitive( cuda::movo::create_from( { 1, 0.f, 0.f, -50.f } ) );
+    CUDA->AddPrimitive( cuda::sfero::create_from( { 60.f } ) );
+    CUDA->AddPrimitive( cuda::movo::create_from( { 1, 0.f, 0.f, 50.f } ) );
+    CUDA->AddPrimitive( cuda::sfero::create_from( { 40.f } ) );
     CUDA->SetPrimitives();
 
     float scale = powf( 2.f, -6.1f ), theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
@@ -172,9 +103,10 @@ int main( int argc, char **argv ) {
             .StartWVec = point{ scale * sin_phi, -scale * cos_phi, 0.f },
             .StartHVec = point{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta }
     };
-    
     CUDA->SetInfo( Info_h );
     
+    
+    // Start
     size_t compute_time = 0, this_time, prev_time;
     bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false, run;
     for ( run = true, this_time = SDL_GetTicks(), prev_time = this_time;
