@@ -4,7 +4,8 @@
 #define rays_Process_args
 #define rays_Quit_args
 #define rays_SetInfo_args       const rays_info &info
-#define rays_SetTexture_args    GLuint texture
+#define rays_UnsetInfo_args
+#define rays_SetTexture_args    unsigned int texture
 #define rays_SetPrimitives_args
 #define rays_SetRays_args
 
@@ -12,31 +13,31 @@
 #define CREATE_OBJECT_TYPE_DESCRIPTION(__TYPE__,__STRUCT__)                                         \
 class __TYPE__ {                                                                                    \
 protected:                                                                                          \
-    typedef __STRUCT__ data_struct;                                                                 \
 public:                                                                                             \
+    typedef __STRUCT__ data_struct;                                                                 \
     static __host__ primitives::bazo create_from( data_struct data ) {                              \
         return primitives::create( primitives::type_##__TYPE__, &data );                            \
     }                                                                                               \
-    static __device__ __forceinline__ scalar dist( primitives::bazo_ptr, const point& p );          \
-    static __device__ __forceinline__ point norm( primitives::bazo_ptr, const point& p );           \
-};
+};                                                                                                  \
+__device__ __forceinline__ scalar __TYPE__##_dist( primitives::bazo_ptr, const point& p );          \
+__device__ __forceinline__ point __TYPE__##_norm( primitives::bazo_ptr, const point& p );           \
 
 #define CREATE_OBJECT_TYPE_DEFINITION(__TYPE__,__DIST__,__NORM__)                                   \
 __device__ __forceinline__ scalar                                                                   \
-__TYPE__##::dist( primitives::bazo_ptr obj, const point &p ) {                                      \
-    data_struct *data = reinterpret_cast<data_struct*>( obj->data );                                \
+__TYPE__##_dist( primitives::bazo_ptr obj, const point &p ) {                                       \
+    __TYPE__##::data_struct *data = reinterpret_cast<__TYPE__##::data_struct*>( obj->data );        \
     __DIST__                                                                                        \
 }                                                                                                   \
 __device__ __forceinline__ point                                                                    \
-__TYPE__##::norm( primitives::bazo_ptr obj, const point &p ) {                                      \
-    data_struct *data = reinterpret_cast<data_struct*>( obj->data );                                \
+__TYPE__##_norm( primitives::bazo_ptr obj, const point &p ) {                                       \
+    __TYPE__##::data_struct *data = reinterpret_cast<__TYPE__##::data_struct*>( obj->data );        \
     __NORM__                                                                                        \
 }
 
 #define CREATE_OBJECT_TYPE_PROCESSING_2(__SELF__,__TYPE__)                                          \
 case primitives::type_##__TYPE__:                                                                   \
-    __SELF__->dist = ##__TYPE__##::dist;                                                            \
-    __SELF__->norm = ##__TYPE__##::norm;                                                            \
+    __SELF__->dist = __TYPE__##_dist;                                                               \
+    __SELF__->norm = __TYPE__##_norm;                                                               \
     break;
 
 #define CREATE_OBJECT_TYPE_PROCESSING_LISTING_2(__SELF__)                                           \

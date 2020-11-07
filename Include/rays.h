@@ -1,17 +1,13 @@
 #pragma once
 
-#include <cmath>
+#include "defines.h"
+
 #include <vector>
-#include <bitset>
-#include <memory>
-#include <iomanip>
+#include <string>
 #include <iostream>
 
 #include <SDL.h>
-#include <SDL_image.h>
 #include <SDL_opengl.h>
-
-#include "defines.h"
 
 typedef unsigned char raw_byte;
 
@@ -124,6 +120,7 @@ public:
     virtual int SetInfo( rays_SetInfo_args ) = 0;
     
     virtual int SetTexture( rays_SetTexture_args ) = 0;
+    virtual int UnsetTexture( rays_UnsetInfo_args ) = 0;
     
     virtual int SetPrimitives( rays_SetPrimitives_args ) = 0;
     

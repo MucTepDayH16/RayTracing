@@ -1,9 +1,11 @@
-#define _USE_MATH_DEFINES
+#include <cmath>
+#include <bitset>
+#include <iostream>
+
+#include "../Include/cuda_rays.cuh"
 
 constexpr float M_SQRT1_5f{ .447213595499957939281f };
 constexpr float M_PI_2f{ 1.57079632679489661923f };
-
-#include <cuda_rays.cuh>
 
 using namespace std;
 
@@ -80,16 +82,16 @@ int main( int argc, char **argv ) {
     
     CUDA->ReservePrimitives( RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD );
     CUDA->AddPrimitive( cuda::senfina_ripeto::create_from( { 1, 0.f, 500.f, 100.f } ) );
-    CUDA->AddPrimitive( cuda::movo::create_from( { 1, 200.f, 0.f, 0.f } ) );
-    CUDA->AddPrimitive( cuda::rotacioQ::create_from( { 1, w, r * d.x, r * d.y, r * d.z } ) );
-    CUDA->AddPrimitive( cuda::komunajo_2::create_from( { 1, 2 } ) );
-    CUDA->AddPrimitive( cuda::kubo::create_from( { 50.f, 50.f, 50.f } ) );
-    CUDA->AddPrimitive( cuda::komplemento::create_from( { 1 } ) );
-    CUDA->AddPrimitive( cuda::kunigajo_2::create_from( { 1, 3 } ) );
-    CUDA->AddPrimitive( cuda::movo::create_from( { 1, 0.f, 0.f, -50.f } ) );
-    CUDA->AddPrimitive( cuda::sfero::create_from( { 60.f } ) );
-    CUDA->AddPrimitive( cuda::movo::create_from( { 1, 0.f, 0.f, 50.f } ) );
-    CUDA->AddPrimitive( cuda::sfero::create_from( { 40.f } ) );
+    CUDA->AddPrimitive( cuda::movo          ::create_from( { 1, 200.f, 0.f, 0.f } ) );
+    CUDA->AddPrimitive( cuda::rotacioQ      ::create_from( { 1, w, r * d.x, r * d.y, r * d.z } ) );
+    CUDA->AddPrimitive( cuda::komunajo_2    ::create_from( { 1, 2 } ) );
+    CUDA->AddPrimitive( cuda::kubo          ::create_from( { 50.f, 50.f, 50.f } ) );
+    CUDA->AddPrimitive( cuda::komplemento   ::create_from( { 1 } ) );
+    CUDA->AddPrimitive( cuda::kunigajo_2    ::create_from( { 1, 3 } ) );
+    CUDA->AddPrimitive( cuda::movo          ::create_from( { 1, 0.f, 0.f, -50.f } ) );
+    CUDA->AddPrimitive( cuda::sfero         ::create_from( { 60.f } ) );
+    CUDA->AddPrimitive( cuda::movo          ::create_from( { 1, 0.f, 0.f, 50.f } ) );
+    CUDA->AddPrimitive( cuda::sfero         ::create_from( { 40.f } ) );
     CUDA->SetPrimitives();
 
     float scale = powf( 2.f, -6.1f ), theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
@@ -107,7 +109,7 @@ int main( int argc, char **argv ) {
     
     
     // Start
-    size_t compute_time = 0, this_time, prev_time;
+    size_t compute_time, this_time, prev_time;
     bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false, run;
     for ( run = true, this_time = SDL_GetTicks(), prev_time = this_time;
           run;
@@ -252,6 +254,7 @@ int main( int argc, char **argv ) {
     }
 
 
+    CUDA->UnsetTexture();
     CUDA->Quit();
 
     SDL_GL_DeleteContext( GL );

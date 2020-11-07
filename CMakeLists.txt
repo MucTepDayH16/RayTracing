@@ -1,21 +1,18 @@
 cmake_minimum_required(VERSION 3.17)
 project(RayTracing VERSION 0.1 LANGUAGES CXX CUDA)
 
-set(RT_INC
-        "${CMAKE_SOURCE_DIR}/Include")
+set(RT_INC)
 set(RT_CXX_SRC
         "${PROJECT_SOURCE_DIR}/Source/main.cpp"
         # "${PROJECT_SOURCE_DIR}/Source/fileIO.cpp"
-        # "${PROJECT_SOURCE_DIR}/Source/raymarching.cpp"
-        )
-set(RT_CUDA_SRC
-        "${PROJECT_SOURCE_DIR}/Source/cuda_rays.cu"
         )
 set(RT_LIB)
 
 
 # CUDA configuration
-set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+set(RT_CUDA_SRC
+        "${PROJECT_SOURCE_DIR}/Source/cuda_rays.cu"
+        )
 set(CMAKE_CUDA_FLAGS "-arch=sm_${CUDA_ARCH}")
 
 list(APPEND RT_INC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})

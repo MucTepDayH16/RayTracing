@@ -1,4 +1,6 @@
-#include "cuda_rays.cuh"
+#include "../Include/cuda_rays.cuh"
+
+#include <cuda_gl_interop.h>
 #include <cuda_device_runtime_api.h>
 
 #define _MATH               static __device__ __forceinline__
@@ -654,6 +656,8 @@ int raymarching::Init( rays_Init_args ) {
     _CUDA( cudaMalloc( &Info_d, sizeof rays_info ) )
     Primitives_d = nullptr;
     
+    _resource_desc.resType = cudaResourceTypeArray;
+    
     _RETURN
 }
 
@@ -671,9 +675,6 @@ int raymarching::Process( rays_Process_args ) {
 }
 
 int raymarching::Quit( rays_Quit_args ) {
-    _CUDA( cudaDestroySurfaceObject( _surface ) )
-    _CUDA( cudaGraphicsUnmapResources( 1, &_resource, _default_stream ) )
-    
     _CUDA( cudaFree( Primitives_d ) )
     _CUDA( cudaFree( Rays_d ) )
     _CUDA( cudaFree( Info_d ) )
@@ -692,13 +693,24 @@ int raymarching::SetInfo( rays_SetInfo_args ) {
 }
 
 int raymarching::SetTexture( rays_SetTexture_args ) {
+    if ( !_resource ) {
+        _CUDA( UnsetTexture() )
+    }
     _CUDA( cudaGraphicsGLRegisterImage( &_resource, texture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore ) )
     _CUDA( cudaGraphicsMapResources( 1, &_resource, _default_stream ) )
     
-    _resource_desc.resType = cudaResourceTypeArray;
     _CUDA( cudaGraphicsSubResourceGetMappedArray( &_resource_desc.res.array.array, _resource, 0, 0 ) )
     
     _CUDA( cudaCreateSurfaceObject( &_surface, &_resource_desc ) )
+    
+    _RETURN
+}
+
+int raymarching::UnsetTexture( rays_UnsetInfo_args ) {
+    _CUDA( cudaDestroySurfaceObject( _surface ) )
+    _CUDA( cudaGraphicsUnmapResources( 1, &_resource, _default_stream ) )
+    
+    _resource = nullptr;
     
     _RETURN
 }

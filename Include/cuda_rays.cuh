@@ -1,15 +1,13 @@
 #pragma once
-#include "rays.h"
 
+#include "rays.h"
 #include <cuda_runtime.h>
-#include <cuda_gl_interop.h>
 
 #define CUDA_RAYS_STREAM_NUM        1
 #define CUDA_RAYS_DEFAULT_STREAM    0
 
 #define CUDA_RAYS_EVENT_NUM         2
 
-#define CUDA_SET_GRID(c,n) ( c - 1 ) / Block##n##d.c + 1
 #ifdef _DEBUG
 #define CUDA_CHECK(__ERROR__) {                                                         \
     cudaError_t err = ( __ERROR__ );                                                    \
@@ -50,6 +48,7 @@ public:
     
     int SetInfo( rays_SetInfo_args ) override;
     int SetTexture( rays_SetTexture_args ) override;
+    int UnsetTexture( rays_UnsetInfo_args ) override;
     int SetPrimitives( rays_SetPrimitives_args ) override;
     int SetRays( rays_SetRays_args ) override;
 };

@@ -34,7 +34,7 @@ To build the application I will enter next commands in shell:
 ## Execution
 
 In Windows you need to add `SDL2.dll` runtime library to `./Build` directory. 
-It is located in `./SDL2extra/win_x64` or `./SL2extra/win_x86`, depening on your system.
+It is located in `./SDL2extra/win_x64` or `./SL2extra/win_x86`, depending on your system.
 
 Run command `./Build/RayTracing` (in Windows - `./Build/RayTracing.exe`) with arguments:
 * `--width WIDTH` - replace `WIDTH` with your desired window width;
