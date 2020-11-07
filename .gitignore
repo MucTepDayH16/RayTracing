@@ -4,6 +4,7 @@ x64/
 
 # CLion cache/options directory
 .idea/
+.backup/
 
 # CMake cache
 cmake-build-*

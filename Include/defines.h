@@ -65,7 +65,7 @@ switch ( __SELF__->type ) {                                                     
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioZ );                                          \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioQ );                                          \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, senfina_ripeto );                                    \
-    default: __SELF__->dist = nullptr; __SELF__->norm = nullptr;                                     \
+    default: __SELF__->dist = nullptr; __SELF__->norm = nullptr;                                    \
 }
 
 #define RAYS_DIST(__SELF__,__POINT__) ((__SELF__)->dist((__SELF__),(__POINT__)))
@@ -90,4 +90,5 @@ switch ( __SELF__->type ) {                                                     
 #define RAYS_MAX_LUM                .9f
 #define RAYS_MIN_LUM                .1f
 
-#define RAYS_SHADOW                 64.f
+#define RAYS_SHADOW_OFF             1
+#define RAYS_SHADOW_VAL                 64.f

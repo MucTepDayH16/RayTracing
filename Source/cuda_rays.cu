@@ -118,6 +118,7 @@ _KERNEL Process( size_t Width, size_t Height, rays_info _PTR Info_d, ray _PTR Ra
                     p.z += RAYS_MIN_DIST * light.z;
                     ray_dist = RAYS_MIN_DIST;
 
+#if RAYS_SHADOW_OFF != 1
 #pragma unroll
                     for ( size_t J = 0; J < RAYS_MAX_COUNTER; ++J ) {
                         curr_dist = RAYS_DIST( curr_ptr, p );
@@ -128,7 +129,7 @@ _KERNEL Process( size_t Width, size_t Height, rays_info _PTR Info_d, ray _PTR Ra
                             break;
                         }
 
-                        SHADOW = min( SHADOW, RAYS_SHADOW * curr_dist / ray_dist );
+                        SHADOW = min( SHADOW, RAYS_SHADOW_VAL * curr_dist / ray_dist );
 
                         p.x += curr_dist * light.x;
                         p.y += curr_dist * light.y;
@@ -140,6 +141,7 @@ _KERNEL Process( size_t Width, size_t Height, rays_info _PTR Info_d, ray _PTR Ra
                             break;
                         }
                     }
+#endif
 
                     float3 MATERIAL = { 1.f, 1.f, 1.f };
                     uint8_t LIGHT =
