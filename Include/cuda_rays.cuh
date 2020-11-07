@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rays.h"
-#include <cuda_runtime.h>
+#include <cuda.h>
 
 #define CUDA_RAYS_STREAM_NUM        1
 #define CUDA_RAYS_DEFAULT_STREAM    0
@@ -10,12 +10,15 @@
 
 #ifdef _DEBUG
 #define CUDA_CHECK(__ERROR__) {                                                         \
-    cudaError_t err = ( __ERROR__ );                                                    \
-    if ( err )                                                                          \
+    CUresult err = ( __ERROR__ );                                                       \
+    if ( err ) {                                                                        \
+        const char *ErrorName;                                                          \
+        cuGetErrorName(__ERROR__,&ErrorName);                                           \
         std::cout <<                                                                    \
-            cudaGetErrorName( __ERROR__ ) << std::endl <<                               \
+            ErrorName << std::endl <<                                                   \
             "\t: at line " << __LINE__ << std::endl <<                                  \
             "\t: in file " << __FILE__ << std::endl << std::endl;                       \
+    }                                                                                   \
 }
 #endif
 
@@ -34,13 +37,25 @@
 namespace cuda {
 
 class raymarching : public null::raymarching {
-    cudaStream_t            _stream[ CUDA_RAYS_STREAM_NUM ], _default_stream;
-    cudaEvent_t             _event[ CUDA_RAYS_EVENT_NUM ];
+    CUdevice                _device;
+    uint8_t                 _cc_div_10;
+    char                    _device_name[128];
+    
+    CUcontext               _context;
+    CUmodule                _module;
+    CUstream                _stream[ CUDA_RAYS_STREAM_NUM ], _default_stream;
+    CUevent                 _event[ CUDA_RAYS_EVENT_NUM ];
+    
     float                   _last_process_time;
-    cudaError_t             _last_cuda_error;
-    cudaGraphicsResource*   _resource;
-    cudaResourceDesc        _resource_desc;
-    cudaSurfaceObject_t     _surface;
+    CUresult                _last_cuda_error;
+    
+    CUfunction              _process, _set_rays, _set_primitives;
+    CUdeviceptr             _rays, _info, _prim;
+    CUdeviceptr             _width, _height, _prim_num;
+    
+    CUgraphicsResource      _resource;
+    CUDA_RESOURCE_DESC      _resource_desc;
+    CUsurfObject            _surface;
 public:
     int Init( rays_Init_args ) override;
     int Process( rays_Process_args ) override;

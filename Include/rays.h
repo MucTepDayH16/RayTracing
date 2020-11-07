@@ -91,10 +91,6 @@ protected:
     std::string SceneName;
     std::vector<primitives::bazo> Primitives_h;
     size_t PrimitivesNum;
-    
-    void *Primitives_d;
-    void *Rays_d;
-    void *Info_d;
 public:
     /****************************************************************************
      * @brief   Initializes environment for specific compute method             *

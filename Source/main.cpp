@@ -109,6 +109,7 @@ int main( int argc, char **argv ) {
     
     
     // Start
+    cout << "Start" << endl;
     size_t compute_time, this_time, prev_time;
     bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false, run;
     for ( run = true, this_time = SDL_GetTicks(), prev_time = this_time;

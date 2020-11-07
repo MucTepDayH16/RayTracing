@@ -5,18 +5,20 @@ set(RT_INC)
 set(RT_CXX_SRC
         "${PROJECT_SOURCE_DIR}/Source/main.cpp"
         # "${PROJECT_SOURCE_DIR}/Source/fileIO.cpp"
+        "${PROJECT_SOURCE_DIR}/Source/cuda_rays.cu"
         )
 set(RT_LIB)
 
 
 # CUDA configuration
 set(RT_CUDA_SRC
-        "${PROJECT_SOURCE_DIR}/Source/cuda_rays.cu"
+        "${PROJECT_SOURCE_DIR}/Source/cuda_kernels.cu"
         )
-set(CMAKE_CUDA_FLAGS "-arch=sm_${CUDA_ARCH}")
+set(CMAKE_CUDA_FLAGS "-arch=compute_${CUDA_ARCH}")
 
+find_package(CUDA)
 list(APPEND RT_INC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-list(APPEND RT_LIB ${CMAKE_CUDA_RUNTIME_LIBRARY})
+list(APPEND RT_LIB ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib)
 
 # OpenGL configuration
 find_package(OpenGL REQUIRED)
@@ -32,11 +34,16 @@ list(APPEND RT_INC ${SDL2_INCLUDE_DIRS})
 list(APPEND RT_LIB ${SDL2_LIBRARIES})
 
 # Project configuration
-add_executable(RayTracing ${RT_CXX_SRC} ${RT_CUDA_SRC})
+add_library(CudaPTX OBJECT ${RT_CUDA_SRC})
+target_include_directories(CudaPTX PUBLIC ${RT_INC})
+target_compile_features(CudaPTX PUBLIC cxx_std_20)
+set_target_properties(CudaPTX PROPERTIES CUDA_PTX_COMPILATION ON)
+
+add_executable(RayTracing ${RT_CXX_SRC})
 target_include_directories(RayTracing PUBLIC ${RT_INC})
 target_link_libraries(RayTracing PUBLIC ${RT_LIB})
 target_compile_features(RayTracing PUBLIC cxx_std_20)
-set_target_properties(RayTracing PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+# set_target_properties(RayTracing PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 if(APPLE)
   set_target_properties(RayTracing PROPERTIES BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})

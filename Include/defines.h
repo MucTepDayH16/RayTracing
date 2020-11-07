@@ -15,12 +15,12 @@ class __TYPE__ {                                                                
 protected:                                                                                          \
 public:                                                                                             \
     typedef __STRUCT__ data_struct;                                                                 \
-    static __host__ primitives::bazo create_from( data_struct data ) {                              \
+    static primitives::bazo create_from( data_struct data ) {                                       \
         return primitives::create( primitives::type_##__TYPE__, &data );                            \
     }                                                                                               \
-};                                                                                                  \
-__device__ __forceinline__ scalar __TYPE__##_dist( primitives::bazo_ptr, const point& p );          \
-__device__ __forceinline__ point __TYPE__##_norm( primitives::bazo_ptr, const point& p );           \
+};
+//__device__ __forceinline__ scalar __TYPE__##_dist( primitives::bazo_ptr, const point& p );          \
+//__device__ __forceinline__ point __TYPE__##_norm( primitives::bazo_ptr, const point& p );           \
 
 #define CREATE_OBJECT_TYPE_DEFINITION(__TYPE__,__DIST__,__NORM__)                                   \
 __device__ __forceinline__ scalar                                                                   \
@@ -36,8 +36,8 @@ __TYPE__##_norm( primitives::bazo_ptr obj, const point &p ) {                   
 
 #define CREATE_OBJECT_TYPE_PROCESSING_2(__SELF__,__TYPE__)                                          \
 case primitives::type_##__TYPE__:                                                                   \
-    __SELF__->dist = __TYPE__##_dist;                                                               \
-    __SELF__->norm = __TYPE__##_norm;                                                               \
+    __SELF__->dist = cuda::##__TYPE__##_dist;                                                       \
+    __SELF__->norm = cuda::##__TYPE__##_norm;                                                       \
     break;
 
 #define CREATE_OBJECT_TYPE_PROCESSING_LISTING_2(__SELF__)                                           \
