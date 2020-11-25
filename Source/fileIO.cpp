@@ -1,27 +1,20 @@
-#include "rays.h"
-#include <fstream>
+#include "../Include/fileIO.h"
 
-namespace raymarching {
+namespace IO {
 
-int PrimitivesI( std::vector< primitives::bazo > &primitives, const std::string &file_name ) {
-    std::fstream fin;
-    fin.open( file_name.c_str(), std::ios::in | std::ios::binary );
-    char *buffer = new char[ primitives.capacity() * sizeof primitives::bazo ];
-    fin.read( buffer, primitives.capacity() * sizeof primitives::bazo );
-    size_t num = fin.gcount() / sizeof primitives::bazo;
+using namespace std;
+
+string read_source( const char *file_name ) {
+    ifstream fin( file_name );
+    string file_content((istreambuf_iterator<char>(fin)), istreambuf_iterator<char>());
     fin.close();
-    primitives.resize( num );
-    memcpy( primitives.data(), buffer, num * sizeof primitives::bazo );
-    delete buffer;
-    return 0;
+    return file_content;
 }
 
-int PrimitivesO( const std::vector< primitives::bazo > &primitives, const std::string &file_name ) {
-    std::fstream fout;
-    fout.open( file_name.c_str(), std::ios::out | std::ios::binary );
-    fout.write( ( char* ) ( void* ) primitives.data(), primitives.size() * sizeof primitives::bazo );
+void    write_source( const char *file_name, const string &to_write ) {
+    ofstream fout( file_name, ios_base::trunc );
+    fout.write( to_write.c_str(), to_write.size() );
     fout.close();
-    return 0;
 }
 
 };

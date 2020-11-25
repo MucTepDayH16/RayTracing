@@ -59,6 +59,37 @@ int raymarching::Init( rays_Init_args ) {
     
     _resource_desc.flags = 0;
     _resource_desc.resType = CU_RESOURCE_TYPE_ARRAY;
+
+    {
+        std::string     _cuda_source = IO::read_source( "Source/cuda_kernels.cu" );
+        nvrtcResult     _error;
+        
+        nvrtcProgram    _kernel;
+        _error = nvrtcCreateProgram(
+                &_kernel,
+                _cuda_source.c_str(),
+                "cudaRayMarching",
+                0, nullptr, nullptr
+        );
+        
+        //  _error = nvrtcAddNameExpression( _kernel, "kernel_Process" );
+        //  _error = nvrtcAddNameExpression( _kernel, "kernel_SetPrimitives" );
+        //  _error = nvrtcAddNameExpression( _kernel, "kernel_SetRays" );
+        
+        const char *_options[] = {
+                "-arch=compute_61",
+                "-use_fast_math",
+                "-default-device",
+        };
+        _error = nvrtcCompileProgram( _kernel, 3, _options );
+        
+        size_t _log_size;
+        _error = nvrtcGetProgramLogSize( _kernel, &_log_size );
+        char *_log = new char [ _log_size ];
+        _error = nvrtcGetProgramLog( _kernel, _log );
+        
+        int x = 0;
+    }
     
     _RETURN
 }

@@ -4,7 +4,7 @@ project(RayTracing VERSION 0.1 LANGUAGES CXX CUDA)
 set(RT_INC)
 set(RT_CXX_SRC
         "${PROJECT_SOURCE_DIR}/Source/main.cpp"
-        # "${PROJECT_SOURCE_DIR}/Source/fileIO.cpp"
+        "${PROJECT_SOURCE_DIR}/Source/fileIO.cpp"
         "${PROJECT_SOURCE_DIR}/Source/cuda_rays.cu"
         )
 set(RT_LIB)
@@ -18,7 +18,7 @@ set(CMAKE_CUDA_FLAGS "-arch=sm_${CUDA_ARCH} --use_fast_math")
 
 find_package(CUDA)
 list(APPEND RT_INC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-list(APPEND RT_LIB ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib)
+list(APPEND RT_LIB ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/nvrtc.lib)
 
 # OpenGL configuration
 find_package(OpenGL REQUIRED)
