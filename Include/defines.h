@@ -15,12 +15,10 @@ class __TYPE__ {                                                                
 protected:                                                                                          \
 public:                                                                                             \
     typedef __STRUCT__ data_struct;                                                                 \
-    static primitives::bazo create_from( data_struct data ) {                                       \
+    static inline primitives::bazo create_from( data_struct data ) {                                \
         return primitives::create( primitives::type_##__TYPE__, &data );                            \
     }                                                                                               \
 };
-//__device__ __forceinline__ scalar __TYPE__##_dist( primitives::bazo_ptr, const point& p );          \
-//__device__ __forceinline__ point __TYPE__##_norm( primitives::bazo_ptr, const point& p );           \
 
 #define CREATE_OBJECT_TYPE_DEFINITION(__TYPE__,__DIST__,__NORM__)                                   \
 __device__ __forceinline__ scalar                                                                   \
@@ -36,8 +34,8 @@ __TYPE__##_norm( primitives::bazo_ptr obj, const point &p ) {                   
 
 #define CREATE_OBJECT_TYPE_PROCESSING_2(__SELF__,__TYPE__)                                          \
 case primitives::type_##__TYPE__:                                                                   \
-    __SELF__->dist = cuda::##__TYPE__##_dist;                                                       \
-    __SELF__->norm = cuda::##__TYPE__##_norm;                                                       \
+    __SELF__->dist = primitives::##__TYPE__##_dist;                                                 \
+    __SELF__->norm = primitives::##__TYPE__##_norm;                                                 \
     break;
 
 #define CREATE_OBJECT_TYPE_PROCESSING_LISTING_2(__SELF__)                                           \
@@ -65,7 +63,7 @@ switch ( __SELF__->type ) {                                                     
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioZ );                                          \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioQ );                                          \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, senfina_ripeto );                                    \
-    default: __SELF__->dist = nullptr; __SELF__->norm = nullptr;                                     \
+    default: __SELF__->dist = nullptr; __SELF__->norm = nullptr;                                    \
 }
 
 #define RAYS_DIST(__SELF__,__POINT__) ((__SELF__)->dist((__SELF__),(__POINT__)))

@@ -1,8 +1,5 @@
 #include "../Include/cuda_rays.cuh"
 
-#include <cuda_gl_interop.h>
-#include <cudaGL.h>
-
 #define _CUDA(__ERROR__)    {_last_cuda_error = CUresult(__ERROR__); CUDA_CHECK(_last_cuda_error);}
 #define _RETURN             return int(_last_cuda_error);
 
@@ -34,9 +31,9 @@ int raymarching::Init( rays_Init_args ) {
     
     _CUDA( cuCtxCreate_v2( &_context, 0, _device ) )
     _CUDA( cuModuleLoad( &_module, _PATH ) )
-    _CUDA( cuModuleGetFunction( &_process, _module, "_Z14kernel_ProcessPyS_P9rays_infoP3rayPN10primitives4bazoES_y" ) )
-    _CUDA( cuModuleGetFunction( &_set_primitives, _module, "_Z20kernel_SetPrimitivesPN10primitives4bazoEPy" ) )
-    _CUDA( cuModuleGetFunction( &_set_rays, _module, "_Z14kernel_SetRaysPyS_P9rays_infoP3ray" ) )
+    _CUDA( cuModuleGetFunction( &_process,          _module, "kernel_Process" ) )
+    _CUDA( cuModuleGetFunction( &_set_primitives,   _module, "kernel_SetPrimitives" ) )
+    _CUDA( cuModuleGetFunction( &_set_rays,         _module, "kernel_SetRays" ) )
     
     for ( size_t n = 0; n < CUDA_RAYS_STREAM_NUM; ++n ) {
         _CUDA( cuStreamCreate( _stream + n, 0 ) )

@@ -1,37 +1,35 @@
-#include "../Include/cuda_rays.cuh"
+#include "../Include/objects_list.h"
+#include "../Include/cuda_defines.cuh"
 
-#include <cuda_gl_interop.h>
-#include <cuda_device_runtime_api.h>
-
-#define _MATH               __device__ __forceinline__
-#define _KERNEL             __global__ void
+#define _ATOMIC             __device__ __forceinline__
+#define _KERNEL             extern "C" __global__ void
 #define _PTR                *__restrict__
 
-namespace kernel {
+namespace atomic {
 
-_MATH point new_point( const scalar &x, const scalar &y, const scalar &z ) {
+_ATOMIC point   new_point( const scalar &x, const scalar &y, const scalar &z ) {
     return point{ x, y, z };
 }
 
-_MATH point mul_point( const point &p, const scalar &s ) {
+_ATOMIC point   mul_point( const point &p, const scalar &s ) {
     return point{ s * p.x, s * p.y, s * p.z };
 }
 
-_MATH point add_point( const point &p1, const point &p2 ) {
+_ATOMIC point   add_point( const point &p1, const point &p2 ) {
     return point{ p1.x + p2.x, p1.y + p2.y, p1.z + p2.z };
 }
 
-_MATH scalar dot( const point &p1, const point &p2 ) {
+_ATOMIC scalar  dot( const point &p1, const point &p2 ) {
     return p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 }
 
-_MATH scalar mix( const scalar &a, const scalar &b, const scalar &x ) {
+_ATOMIC scalar  mix( const scalar &a, const scalar &b, const scalar &x ) {
     return a + x * ( b - a );
 }
 
 };
 
-namespace cuda {
+namespace primitives {
 
 // TYPE_LIST
 CREATE_OBJECT_TYPE_DEFINITION(
@@ -81,9 +79,9 @@ CREATE_OBJECT_TYPE_DEFINITION(
             q.x = fabsf( p.x ) - data->b.x;
             q.y = fabsf( p.y ) - data->b.y;
             q.z = fabsf( p.z ) - data->b.z;
-            return q.x > q.z ? ( q.x > q.y ? kernel::new_point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : kernel::new_point(
-                    0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? kernel::new_point( 0.f, p.y > 0.f ? 1.f : -1.f,
-                                                                                            0.f ) : kernel::new_point(
+            return q.x > q.z ? ( q.x > q.y ? atomic::new_point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : atomic::new_point(
+                    0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? atomic::new_point( 0.f, p.y > 0.f ? 1.f : -1.f,
+                                                                                            0.f ) : atomic::new_point(
                     0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
         } );
 
@@ -105,14 +103,14 @@ CREATE_OBJECT_TYPE_DEFINITION(
             q.x      = r - data->r;
             q.y      = fabsf( p.z ) - data->h;
             
-            return q.x > q.y ? kernel::new_point( p.x, p.y, 0.f ) : kernel::new_point( 0.f, 0.f,
+            return q.x > q.y ? atomic::new_point( p.x, p.y, 0.f ) : atomic::new_point( 0.f, 0.f,
                                                                                        p.z > 0.f ? 1.f : -1.f );
         } );
 
 CREATE_OBJECT_TYPE_DEFINITION(
         ebeno,
         {
-            return kernel::dot( data->n, p );
+            return atomic::dot( data->n, p );
         },
         {
             return data->n;
@@ -270,7 +268,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         {
             primitives::bazo_ptr O = obj + data->o;
             point                N = RAYS_NORM( O, p );
-            return kernel::new_point( -N.x, -N.y, -N.z );
+            return atomic::new_point( -N.x, -N.y, -N.z );
         } );
 
 CREATE_OBJECT_TYPE_DEFINITION(
@@ -283,7 +281,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
             scalar               h  = ( 1.f - ( d0 - d1 ) / data->k ) * .5f;
             if ( h > 1.f ) return d0;
             if ( h < 0.f ) return d1;
-            return kernel::mix( d0, d1, h ) - data->k * h * ( 1.f - h );
+            return atomic::mix( d0, d1, h ) - data->k * h * ( 1.f - h );
         },
         {
             primitives::bazo_ptr o0 = obj + data->o[ 0 ];
@@ -297,8 +295,8 @@ CREATE_OBJECT_TYPE_DEFINITION(
             point n1 = RAYS_NORM( o1, p );
             d0 = r_length_3( n0.x, n0.y, n0.z );
             d1 = r_length_3( n1.x, n1.y, n1.z );
-            return kernel::new_point( kernel::mix( d0 * n0.x, d1 * n1.x, h ), kernel::mix( d0 * n0.y, d1 * n1.y, h ),
-                                      kernel::mix( d0 * n0.z, d1 * n1.z, h ) );
+            return atomic::new_point( atomic::mix( d0 * n0.x, d1 * n1.x, h ), atomic::mix( d0 * n0.y, d1 * n1.y, h ),
+                                      atomic::mix( d0 * n0.z, d1 * n1.z, h ) );
         } );
 
 CREATE_OBJECT_TYPE_DEFINITION(
@@ -311,7 +309,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
             scalar               h  = ( 1.f + ( d0 - d1 ) / data->k ) * .5f;
             if ( h > 1.f ) return d0;
             if ( h < 0.f ) return d1;
-            return kernel::mix( d0, d1, h ) + data->k * h * ( 1.f - h );
+            return atomic::mix( d0, d1, h ) + data->k * h * ( 1.f - h );
         },
         {
             primitives::bazo_ptr o0 = obj + data->o[ 0 ];
@@ -325,8 +323,8 @@ CREATE_OBJECT_TYPE_DEFINITION(
             point n1 = RAYS_NORM( o1, p );
             d0 = r_length_3( n0.x, n0.y, n0.z );
             d1 = r_length_3( n1.x, n1.y, n1.z );
-            return kernel::new_point( kernel::mix( d0 * n0.x, d1 * n1.x, h ), kernel::mix( d0 * n0.y, d1 * n1.y, h ),
-                                      kernel::mix( d0 * n0.z, d1 * n1.z, h ) );
+            return atomic::new_point( atomic::mix( d0 * n0.x, d1 * n1.x, h ), atomic::mix( d0 * n0.y, d1 * n1.y, h ),
+                                      atomic::mix( d0 * n0.z, d1 * n1.z, h ) );
         } );
 
 
@@ -502,7 +500,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         {
             primitives::bazo_ptr o = obj + data->o;
             point                a = data->a;
-            scalar               N = floorf( kernel::dot( a, p ) / kernel::dot( a, a ) + .5f );
+            scalar               N = floorf( atomic::dot( a, p ) / atomic::dot( a, a ) + .5f );
             a.x = p.x - N * a.x;
             a.y = p.y - N * a.y;
             a.z = p.z - N * a.z;
@@ -511,7 +509,7 @@ CREATE_OBJECT_TYPE_DEFINITION(
         {
             primitives::bazo_ptr o = obj + data->o;
             point                a = data->a;
-            scalar               N = floorf( kernel::dot( a, p ) / kernel::dot( a, a ) + .5f );
+            scalar               N = floorf( atomic::dot( a, p ) / atomic::dot( a, a ) + .5f );
             a.x                    = p.x - N * a.x;
             a.y                    = p.y - N * a.y;
             a.z                    = p.z - N * a.z;
@@ -519,11 +517,11 @@ CREATE_OBJECT_TYPE_DEFINITION(
         } );
     
 };
+
 // Kernels definitions
 
-
-_KERNEL kernel_Process( size_t *Width, size_t *Height, rays_info _PTR Info_d, ray _PTR Rays,
-                        primitives::bazo _PTR Primitives_d, size_t *PrimitivesNum, cudaSurfaceObject_t Image ) {
+_KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_info *Info_d, ray _PTR Rays,
+                        primitives::bazo _PTR Primitives_d, const size_t *PrimitivesNum, cudaSurfaceObject_t Image ) {
     size_t  x = CUDA_RAYS_COORD_nD( x, 2 ),
             y = CUDA_RAYS_COORD_nD( y, 2 ),
             id = RAYS_PRIMITIVES_PER_THREAD * ( threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x );
@@ -560,10 +558,10 @@ _KERNEL kernel_Process( size_t *Width, size_t *Height, rays_info _PTR Info_d, ra
                     curr_norm = RAYS_NORM( curr_ptr, r.p );
                 }
 
-                if ( kernel::dot( curr_norm, r.d ) < 0.f ) {
+                if ( atomic::dot( curr_norm, r.d ) < 0.f ) {
                     scalar R_1 = r_length_3( curr_norm.x, curr_norm.y, curr_norm.z ), N_L;
-                    curr_norm = kernel::mul_point( curr_norm, R_1 );
-                    N_L = kernel::dot( curr_norm, light );
+                    curr_norm = atomic::mul_point( curr_norm, R_1 );
+                    N_L = atomic::dot( curr_norm, light );
 
                     float
                         AMBIENT = 1.f,
@@ -643,16 +641,16 @@ _KERNEL kernel_Process( size_t *Width, size_t *Height, rays_info _PTR Info_d, ra
     }
 }
 
-_KERNEL kernel_SetPrimitives( primitives::bazo _PTR Primitives, size_t *PrimitivesNum ) {
+_KERNEL kernel_SetPrimitives( primitives::bazo _PTR Primitives, const size_t *PrimitivesNum ) {
     size_t x = CUDA_RAYS_COORD_nD( x, 1 );
     
     if ( x < *PrimitivesNum ) {
         primitives::bazo_ptr self = Primitives + x;
-        CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self );
+        CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self )
     }
 }
 
-_KERNEL kernel_SetRays( size_t *Width, size_t *Height, rays_info _PTR Info_d, ray _PTR Rays_d ) {
+_KERNEL kernel_SetRays( const size_t *Width, const size_t *Height, rays_info _PTR Info_d, ray _PTR Rays_d ) {
     int64_t
         x = CUDA_RAYS_COORD_nD( x, 2 ),
         y = CUDA_RAYS_COORD_nD( y, 2 );
@@ -681,7 +679,7 @@ _KERNEL kernel_SetRays( size_t *Width, size_t *Height, rays_info _PTR Info_d, ra
         scalar R_1 = rnorm3df( pos.x + delta_pos.x, pos.y + delta_pos.y, pos.z + delta_pos.z );
 
         ray *self = Rays_d + y * *Width + x;
-        self->d = kernel::mul_point( kernel::add_point( pos, delta_pos ), R_1 );
-        self->p = kernel::add_point( pos, Info->StartPos );
+        self->d = atomic::mul_point( atomic::add_point( pos, delta_pos ), R_1 );
+        self->p = atomic::add_point( pos, Info->StartPos );
     }
 }

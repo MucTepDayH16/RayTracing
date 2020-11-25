@@ -81,17 +81,41 @@ int main( int argc, char **argv ) {
     float alpha = -1.8f, w = cosf( alpha / 2.f ), r = sinf( alpha / 2.f ) / sqrtf( d.x * d.x + d.y * d.y + d.z * d.z );
     
     CUDA->ReservePrimitives( RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD );
-    CUDA->AddPrimitive( cuda::senfina_ripeto::create_from( { 1, 0.f, 500.f, 100.f } ) );
-    CUDA->AddPrimitive( cuda::movo          ::create_from( { 1, 200.f, 0.f, 0.f } ) );
-    CUDA->AddPrimitive( cuda::rotacioQ      ::create_from( { 1, w, r * d.x, r * d.y, r * d.z } ) );
-    CUDA->AddPrimitive( cuda::komunajo_2    ::create_from( { 1, 2 } ) );
-    CUDA->AddPrimitive( cuda::kubo          ::create_from( { 50.f, 50.f, 50.f } ) );
-    CUDA->AddPrimitive( cuda::komplemento   ::create_from( { 1 } ) );
-    CUDA->AddPrimitive( cuda::kunigajo_2    ::create_from( { 1, 3 } ) );
-    CUDA->AddPrimitive( cuda::movo          ::create_from( { 1, 0.f, 0.f, -50.f } ) );
-    CUDA->AddPrimitive( cuda::sfero         ::create_from( { 60.f } ) );
-    CUDA->AddPrimitive( cuda::movo          ::create_from( { 1, 0.f, 0.f, 50.f } ) );
-    CUDA->AddPrimitive( cuda::sfero         ::create_from( { 40.f } ) );
+    
+    CUDA->AddPrimitive(
+            primitives::senfina_ripeto  ::create_from(
+                    { 1, 0.f, 500.f, 100.f } ) );
+    CUDA->AddPrimitive(
+            primitives::movo            ::create_from(
+                    { 1, 200.f, 0.f, 0.f } ) );
+    CUDA->AddPrimitive(
+            primitives::rotacioQ        ::create_from(
+                    { 1, w, r * d.x, r * d.y, r * d.z } ) );
+    CUDA->AddPrimitive(
+            primitives::komunajo_2      ::create_from(
+                    { 1, 2 } ) );
+    CUDA->AddPrimitive(
+            primitives::kubo            ::create_from(
+                    { 50.f, 50.f, 50.f } ) );
+    CUDA->AddPrimitive(
+            primitives::komplemento     ::create_from(
+                    { 1 } ) );
+    CUDA->AddPrimitive(
+            primitives::kunigajo_2      ::create_from(
+                    { 1, 3 } ) );
+    CUDA->AddPrimitive(
+            primitives::movo            ::create_from(
+                    { 1, 0.f, 0.f, -50.f } ) );
+    CUDA->AddPrimitive(
+            primitives::sfero           ::create_from(
+                    { 60.f } ) );
+    CUDA->AddPrimitive(
+            primitives::movo            ::create_from(
+                    { 1, 0.f, 0.f, 50.f } ) );
+    CUDA->AddPrimitive(
+            primitives::sfero           ::create_from(
+                    { 40.f } ) );
+    
     CUDA->SetPrimitives();
 
     float scale = powf( 2.f, -6.1f ), theta = 0.f, cos_theta = 1.f, sin_theta = 0.f, phi = 0.f, cos_phi = 1.f, sin_phi = 0.f;
