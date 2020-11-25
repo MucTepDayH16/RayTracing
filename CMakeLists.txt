@@ -14,7 +14,7 @@ set(RT_LIB)
 set(RT_CUDA_SRC
         "${PROJECT_SOURCE_DIR}/Source/cuda_kernels.cu"
         )
-set(CMAKE_CUDA_FLAGS "-arch=compute_${CUDA_ARCH}")
+set(CMAKE_CUDA_FLAGS "-arch=sm_${CUDA_ARCH} --use_fast_math")
 
 find_package(CUDA)
 list(APPEND RT_INC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
@@ -36,7 +36,6 @@ list(APPEND RT_LIB ${SDL2_LIBRARIES})
 # Project configuration
 add_library(CudaPTX OBJECT ${RT_CUDA_SRC})
 target_include_directories(CudaPTX PUBLIC ${RT_INC})
-target_compile_features(CudaPTX PUBLIC cxx_std_20)
 set_target_properties(CudaPTX PROPERTIES CUDA_PTX_COMPILATION ON)
 
 add_executable(RayTracing ${RT_CXX_SRC})

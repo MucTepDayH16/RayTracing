@@ -10,7 +10,7 @@
 
 ## Building
 
-Before building CUDA based application, you need to figure out your NVidia GPU's compute capability. 
+Before building CUDA based application, you need to figure out your NVidia GPU's compute capability.
 You can determine your Compute Capability (CC) from the list:
 
 * GTX 6xx/7xx - CC `3.0`;
@@ -23,8 +23,8 @@ You can determine your Compute Capability (CC) from the list:
 
 If your GPU is not listed, you can evaluate your CC from *[NVidia source](https://developer.nvidia.com/cuda-gpus)*.
 
-To let you compiler know you CC value, you need to define `CUDA_ARCH` variable with it (without delimiting point) in CMake arguments. 
-For example, my GeForce GTX 1050 GPU has Compute Capability `6.1`. 
+To let you compiler know you CC value, you need to define `CUDA_ARCH` variable with it (without delimiting point) in CMake arguments.
+For example, my GeForce GTX 1050 GPU has Compute Capability `6.1`.
 To build the application I will enter next commands in shell:
 
     mkdir Build
@@ -33,7 +33,7 @@ To build the application I will enter next commands in shell:
 
 ## Execution
 
-In Windows you need to add `SDL2.dll` runtime library to `./Build` directory. 
+In Windows you need to add `SDL2.dll` runtime library to `./Build` directory.
 It is located in `./SDL2extra/win_x64` or `./SL2extra/win_x86`, depending on your system.
 
 Run command `./Build/RayTracing` (in Windows - `./Build/RayTracing.exe`) with arguments:
