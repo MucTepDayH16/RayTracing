@@ -39,7 +39,7 @@ It is located in `./SDL2extra/win_x64` or `./SL2extra/win_x86`, depending on you
 Run command `./Build/RayTracing` (in Windows - `./Build/RayTracing.exe`) with arguments:
 * `--width WIDTH` - replace `WIDTH` with your desired window width;
 * `--height HEIGHT` - replace `HEIGHT` with your desired window height;
-* `--input FILE` - specify desired scene. Template scenes are located in `./Scenes` directory.
+* <s>`--input FILE` - specify desired scene. Template scenes are located in `./Scenes` directory.---</s>
 
 ## Future Work
 
