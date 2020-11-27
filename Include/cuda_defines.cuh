@@ -1,7 +1,5 @@
 #pragma once
 
-#include "stdint.h"
-
 #define CUDA_RAYS_STREAM_NUM        1
 #define CUDA_RAYS_DEFAULT_STREAM    0
 
@@ -31,4 +29,4 @@
 #define r_length_2(x,y)     (rhypotf((x),(y)))
 #define r_length_3(x,y,z)   (rnorm3df((x),(y),(z)))
 
-#define CUDA_RAYS_COORD_nD(c,n)  blockIdx.##c * RAYS_BLOCK_##n##D_##c + threadIdx.##c
+#define CUDA_RAYS_COORD_nD(c,n)  ((blockIdx. c) * (RAYS_BLOCK_##n##D_##c) + (threadIdx. c))

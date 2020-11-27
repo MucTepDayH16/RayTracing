@@ -11,12 +11,6 @@
 
 #define _KERNEL(__FUNC__)    _CUDA(cuLaunchKernel((__FUNC__),grid.x,grid.y,grid.z,block.x,block.y,block.z,0,_default_stream,args,nullptr))
 
-#ifdef _DEBUG
-#define _PATH "./cmake-build-debug/CMakeFiles/CudaPTX.dir/Source/cuda_kernels.ptx"
-#else
-#define _PATH "./cmake-build-release/CMakeFiles/CudaPTX.dir/Source/cuda_kernels.ptx"
-#endif
-
 namespace cuda {
 
 int raymarching::Init( rays_Init_args ) {
@@ -30,7 +24,45 @@ int raymarching::Init( rays_Init_args ) {
     _CUDA( cuDeviceGetName( _device_name, 128, _device ) )
     
     _CUDA( cuCtxCreate_v2( &_context, 0, _device ) )
-    _CUDA( cuModuleLoad( &_module, _PATH ) )
+    
+    
+    {
+        std::string     _cuda_source = IO::read_source( "Source/cuda_kernels.cu" );
+        nvrtcResult     _error;
+        
+        nvrtcProgram    _kernel;
+        _error = nvrtcCreateProgram(
+                &_kernel,
+                _cuda_source.c_str(),
+                "cudaRayMarching",
+                0, nullptr, nullptr
+        );
+        
+        //  _error = nvrtcAddNameExpression( _kernel, "kernel_Process" );
+        //  _error = nvrtcAddNameExpression( _kernel, "kernel_SetPrimitives" );
+        //  _error = nvrtcAddNameExpression( _kernel, "kernel_SetRays" );
+        
+        const char *_options[] = {
+                "-arch=compute_61",
+                "-use_fast_math",
+                "-dc",
+                "-std=c++17",
+                "-builtin-initializer-list=true",
+                "-I./Include",
+        };
+        _error = nvrtcCompileProgram( _kernel, 6, _options );
+        
+        size_t _ptx_len;
+        _error = nvrtcGetPTXSize( _kernel, &_ptx_len );
+        char *_ptx_src = new char [ _ptx_len ];
+        _error = nvrtcGetPTX( _kernel, _ptx_src );
+        
+        _CUDA( cuModuleLoadDataEx( &_module, _ptx_src, 0, nullptr, nullptr ) )
+        
+        delete[] _ptx_src;
+    }
+    
+    //_CUDA( cuModuleLoad( &_module, _PATH ) )
     _CUDA( cuModuleGetFunction( &_process,          _module, "kernel_Process" ) )
     _CUDA( cuModuleGetFunction( &_set_primitives,   _module, "kernel_SetPrimitives" ) )
     _CUDA( cuModuleGetFunction( &_set_rays,         _module, "kernel_SetRays" ) )
@@ -59,37 +91,6 @@ int raymarching::Init( rays_Init_args ) {
     
     _resource_desc.flags = 0;
     _resource_desc.resType = CU_RESOURCE_TYPE_ARRAY;
-
-    {
-        std::string     _cuda_source = IO::read_source( "Source/cuda_kernels.cu" );
-        nvrtcResult     _error;
-        
-        nvrtcProgram    _kernel;
-        _error = nvrtcCreateProgram(
-                &_kernel,
-                _cuda_source.c_str(),
-                "cudaRayMarching",
-                0, nullptr, nullptr
-        );
-        
-        //  _error = nvrtcAddNameExpression( _kernel, "kernel_Process" );
-        //  _error = nvrtcAddNameExpression( _kernel, "kernel_SetPrimitives" );
-        //  _error = nvrtcAddNameExpression( _kernel, "kernel_SetRays" );
-        
-        const char *_options[] = {
-                "-arch=compute_61",
-                "-use_fast_math",
-                "-default-device",
-        };
-        _error = nvrtcCompileProgram( _kernel, 3, _options );
-        
-        size_t _log_size;
-        _error = nvrtcGetProgramLogSize( _kernel, &_log_size );
-        char *_log = new char [ _log_size ];
-        _error = nvrtcGetProgramLog( _kernel, _log );
-        
-        int x = 0;
-    }
     
     _RETURN
 }

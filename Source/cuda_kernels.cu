@@ -1,5 +1,21 @@
+#ifndef __CUDACC_RTC__
+
 #include "../Include/objects_list.h"
 #include "../Include/cuda_defines.cuh"
+
+#else
+
+#define CREATE_OBJECT_TYPE_DESCRIPTION(__TYPE__,__STRUCT__)                                         \
+class __TYPE__ {                                                                                    \
+protected:                                                                                          \
+public:                                                                                             \
+    typedef __STRUCT__ data_struct;                                                                 \
+};
+
+#include "objects_list.h"
+#include "cuda_defines.cuh"
+
+#endif
 
 #define _ATOMIC             __device__ __forceinline__
 #define _KERNEL             extern "C" __global__ void
@@ -522,9 +538,10 @@ CREATE_OBJECT_TYPE_DEFINITION(
 
 _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_info *Info_d, ray _PTR Rays,
                         primitives::bazo _PTR Primitives_d, const size_t *PrimitivesNum, cudaSurfaceObject_t Image ) {
-    size_t  x = CUDA_RAYS_COORD_nD( x, 2 ),
-            y = CUDA_RAYS_COORD_nD( y, 2 ),
-            id = RAYS_PRIMITIVES_PER_THREAD * ( threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x );
+    coord
+        x = CUDA_RAYS_COORD_nD( x, 2 ),
+        y = CUDA_RAYS_COORD_nD( y, 2 ),
+        id = RAYS_PRIMITIVES_PER_THREAD * ( threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x );
 
     // RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * PRIMITIVES_PER_THREAD >= PrimitivesNum
     __shared__ primitives::bazo curr_ptr[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD ];
@@ -532,7 +549,7 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
         primitives::bazo_ptr self = curr_ptr + id;
 
 #pragma unroll
-        for ( uint16_t i = 0; i < RAYS_PRIMITIVES_PER_THREAD; ++i, ++self ) {
+        for ( size_t i = 0; i < RAYS_PRIMITIVES_PER_THREAD; ++i, ++self ) {
             *self = Primitives_d[ id + i ];
             //CREATE_OBJECT_TYPE_PROCESSING_LISTING_2( self );
         }
@@ -614,7 +631,7 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
                     }
 
                     float3 MATERIAL = { 1.f, 1.f, 1.f };
-                    uint8_t LIGHT =
+                    raw_byte LIGHT =
                         //0xff * ( RAYS_MIN_LUM * () + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + R_1 * N_L ) );
                         0xff * ( RAYS_MIN_LUM * AMBIENT * OCCLUSION + ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( N_L > 0.f ? N_L : 0.f ) * SHADOW );
                     PIXEL = {
@@ -642,7 +659,7 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
 }
 
 _KERNEL kernel_SetPrimitives( primitives::bazo _PTR Primitives, const size_t *PrimitivesNum ) {
-    size_t x = CUDA_RAYS_COORD_nD( x, 1 );
+    coord x = CUDA_RAYS_COORD_nD( x, 1 );
     
     if ( x < *PrimitivesNum ) {
         primitives::bazo_ptr self = Primitives + x;
@@ -651,7 +668,7 @@ _KERNEL kernel_SetPrimitives( primitives::bazo _PTR Primitives, const size_t *Pr
 }
 
 _KERNEL kernel_SetRays( const size_t *Width, const size_t *Height, rays_info _PTR Info_d, ray _PTR Rays_d ) {
-    int64_t
+    coord
         x = CUDA_RAYS_COORD_nD( x, 2 ),
         y = CUDA_RAYS_COORD_nD( y, 2 );
 
@@ -662,8 +679,8 @@ _KERNEL kernel_SetRays( const size_t *Width, const size_t *Height, rays_info _PT
 
     if ( x < *Width && y < *Height ) {
         scalar
-            X = .5f * float( 2 * x - int64_t( *Width ) + 1 ),
-            Y = .5f * float( 2 * y - int64_t( *Height ) + 1 ),
+            X = .5f * float( 2 * x - coord( *Width ) + 1 ),
+            Y = .5f * float( 2 * y - coord( *Height ) + 1 ),
             Z = Info->Depth;
 
         point pos;
