@@ -1,9 +1,9 @@
 name: CI
 on:
   push:
-    branches: [ master ]
+    branches: [ ubuntu_latest_test ]
   pull_request:
-    branches: [ master ]
+    branches: [ ubuntu_latest_test ]
 
   workflow_dispatch:
 
@@ -14,10 +14,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+      - name: CUDA check
+        run: nvcc -v
