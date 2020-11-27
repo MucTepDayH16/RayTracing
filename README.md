@@ -33,15 +33,17 @@ To build the application I will enter next commands in shell:
 
 ## Execution
 
-In Windows you need to add `SDL2.dll` runtime library to `./Build` directory.
+On Windows you need to add `SDL2.dll` runtime library to `./Build` directory.
 It is located in `./SDL2extra/win_x64` or `./SL2extra/win_x86`, depending on your system.
 
-Run command `./Build/RayTracing` (in Windows - `./Build/RayTracing.exe`) with arguments:
+Run `./Build/RayTracing` (`./Build/RayTracing.exe` on Windows) with arguments:
 * `--width WIDTH` - replace `WIDTH` with your desired window width;
 * `--height HEIGHT` - replace `HEIGHT` with your desired window height;
-* <s>`--input FILE` - specify desired scene. Template scenes are located in `./Scenes` directory.---</s>
+* ~`--input FILE` - specify desired scene. Template scenes are located in `./Scenes` directory.~
 
 ## Future Work
 
+* To test Linux-compliance;
+* To add OpenCL compute method for Radeon GPU's compatibility; 
 * To add more template scenes and scene creator;
-* To add better illumination and materials;
+* To add better illumination and materials.
