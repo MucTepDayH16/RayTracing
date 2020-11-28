@@ -105,6 +105,10 @@ int raymarching::Init( rays_Init_args ) {
         delete[]        _nvrtc_log_src;
         delete[]        _jit_info_log_src;
         delete[]        _jit_err_log_src;
+        
+        auto *_file_name = new std::string(__PROJ_DIR__);
+        *_file_name += "cuda_kernel_" + std::to_string(_cc_div_10) + ".cubin";
+        IO::write_binary_nowait( _file_name, _cubin_src, _cubin_len );
     }
     
     _CUDA( cuModuleLoadData( &_module, _cubin_src ) )
