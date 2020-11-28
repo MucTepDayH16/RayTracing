@@ -22,6 +22,7 @@ class raymarching : public null::raymarching {
     
     float                   _last_process_time;
     CUresult                _last_cuda_error;
+    nvrtcResult             _last_nvrtc_error;
     
     CUfunction              _process, _set_rays, _set_primitives;
     CUdeviceptr             _rays, _info, _prim;

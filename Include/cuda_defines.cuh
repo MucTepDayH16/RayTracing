@@ -12,21 +12,38 @@
 #define CUDA_RAYS_EVENT_NUM         2
 
 #ifdef _DEBUG
+
 #define CUDA_CHECK(__ERROR__) {                                                         \
     CUresult err = ( __ERROR__ );                                                       \
     if ( err ) {                                                                        \
         const char *ErrorName;                                                          \
-        cuGetErrorName(__ERROR__,&ErrorName);                                           \
+        cuGetErrorName(err,&ErrorName);                                                 \
         std::cout <<                                                                    \
             ErrorName << std::endl <<                                                   \
             "\t: at line " << __LINE__ << std::endl <<                                  \
             "\t: in file " << __FILE__ << std::endl << std::endl;                       \
     }                                                                                   \
 }
+
+#define NVRTC_CHECK(__ERROR__) {                                                        \
+    nvrtcResult err = ( __ERROR__ );                                                    \
+    if ( err ) {                                                                        \
+        const char *ErrorName = nvrtcGetErrorString(err);                               \
+        std::cout <<                                                                    \
+            ErrorName << std::endl <<                                                   \
+            "\t: at line " << __LINE__ << std::endl <<                                  \
+            "\t: in file " << __FILE__ << std::endl << std::endl;                       \
+    }                                                                                   \
+}
+
 #endif
 
 #ifndef CUDA_CHECK
-#define CUDA_CHECK(__ERROR__) (void)__ERROR__
+#define CUDA_CHECK(__ERROR__) (void)(__ERROR__)
+#endif
+
+#ifndef NVRTC_CHECK
+#define NVRTC_CHECK(__ERROR__) (void)(__ERROR__)
 #endif
 
 #define length_2(x,y)       (hypotf((x),(y)))

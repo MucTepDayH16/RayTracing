@@ -1,6 +1,7 @@
 #include "../Include/cuda_rays.cuh"
 
 #define _CUDA(__ERROR__)    {_last_cuda_error = CUresult(__ERROR__); CUDA_CHECK(_last_cuda_error);}
+#define _NVRTC(__ERROR__)   {_last_nvrtc_error = __ERROR__; }
 #define _RETURN             return int(_last_cuda_error);
 
 #define grid_1d(X)          (dim3( ( (X) - 1 ) / RAYS_BLOCK_1D_x + 1 ))
@@ -32,18 +33,16 @@ int raymarching::Init( rays_Init_args ) {
         // Create build environment
         std::string         _cuda_source =
                 IO::read_source( std::string(__PROJ_DIR__) + "Source/cuda_kernels.cu" );
-        nvrtcResult         _error;
         nvrtcProgram        _kernel;
-        _error = nvrtcCreateProgram(
+        _NVRTC( nvrtcCreateProgram(
                 &_kernel,
                 _cuda_source.c_str(),
                 "cudaRayMarching",
-                0, nullptr, nullptr
-        );
+                0, nullptr, nullptr ) )
         
-        _error = nvrtcAddNameExpression( _kernel, "kernel_Process" );
-        _error = nvrtcAddNameExpression( _kernel, "kernel_SetPrimitives" );
-        _error = nvrtcAddNameExpression( _kernel, "kernel_SetRays" );
+        _NVRTC( nvrtcAddNameExpression( _kernel, "kernel_Process" ) )
+        _NVRTC( nvrtcAddNameExpression( _kernel, "kernel_SetPrimitives" ) )
+        _NVRTC( nvrtcAddNameExpression( _kernel, "kernel_SetRays" ) )
         
         const std::string _arch_flag = "-arch=compute_" + std::to_string(_cc_div_10);
         const char*     _options[] = {
@@ -54,17 +53,17 @@ int raymarching::Init( rays_Init_args ) {
                 "-builtin-initializer-list=true",
                 "-I./Include",
         };
-        _error = nvrtcCompileProgram( _kernel, 6, _options );
+        _NVRTC( nvrtcCompileProgram( _kernel, 6, _options ) )
         
         size_t          _nvrtc_log_len;
-        _error = nvrtcGetProgramLogSize( _kernel, &_nvrtc_log_len );
+        _NVRTC( nvrtcGetProgramLogSize( _kernel, &_nvrtc_log_len ) )
         char*           _nvrtc_log_src = new char [ _nvrtc_log_len ];
-        _error = nvrtcGetProgramLog( _kernel, _nvrtc_log_src );
+        _NVRTC( nvrtcGetProgramLog( _kernel, _nvrtc_log_src ))
         
         size_t          _ptx_len;
-        _error = nvrtcGetPTXSize( _kernel, &_ptx_len );
+        _NVRTC( nvrtcGetPTXSize( _kernel, &_ptx_len ) )
         char*           _ptx_src = new char [ _ptx_len ];
-        _error = nvrtcGetPTX( _kernel, _ptx_src );
+        _NVRTC( nvrtcGetPTX( _kernel, _ptx_src ) )
         
         size_t          _jit_info_log_len = 1 << 14,
                         _jit_err_log_len = 1 << 14;
@@ -101,7 +100,7 @@ int raymarching::Init( rays_Init_args ) {
         _CUDA( cuLinkComplete( _link_state, &_cubin_src, &_cubin_len ) )
         
         // Cleaning build environment
-        _error = nvrtcDestroyProgram( &_kernel );
+        _NVRTC( nvrtcDestroyProgram( &_kernel ) )
         delete[]        _ptx_src;
         delete[]        _nvrtc_log_src;
         delete[]        _jit_info_log_src;
