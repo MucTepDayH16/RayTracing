@@ -11,7 +11,7 @@ namespace cuda {
 
 class raymarching : public null::raymarching {
     CUdevice                _device;
-    uint8_t                 _cc_div_10;
+    uint64_t                _cc_div_10;
     char                    _device_name[128];
     
     CUcontext               _context;

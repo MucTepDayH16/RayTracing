@@ -8,6 +8,7 @@ x64/
 
 # CMake cache
 cmake-build-*
+Include/config.h
 
 # Visual Studio solutions and projects
 *.sln*

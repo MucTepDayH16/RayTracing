@@ -45,8 +45,9 @@ int raymarching::Init( rays_Init_args ) {
         _error = nvrtcAddNameExpression( _kernel, "kernel_SetPrimitives" );
         _error = nvrtcAddNameExpression( _kernel, "kernel_SetRays" );
         
-        const char *_options[] = {
-                "-arch=compute_61",
+        const std::string _arch_flag = "-arch=compute_" + std::to_string(_cc_div_10);
+        const char*     _options[] = {
+                _arch_flag.c_str(),
                 "-use_fast_math",
                 "-dc",
                 "-std=c++17",
@@ -55,23 +56,56 @@ int raymarching::Init( rays_Init_args ) {
         };
         _error = nvrtcCompileProgram( _kernel, 6, _options );
         
+        size_t          _nvrtc_log_len;
+        _error = nvrtcGetProgramLogSize( _kernel, &_nvrtc_log_len );
+        char*           _nvrtc_log_src = new char [ _nvrtc_log_len ];
+        _error = nvrtcGetProgramLog( _kernel, _nvrtc_log_src );
+        
         size_t          _ptx_len;
         _error = nvrtcGetPTXSize( _kernel, &_ptx_len );
         char*           _ptx_src = new char [ _ptx_len ];
         _error = nvrtcGetPTX( _kernel, _ptx_src );
         
-        _CUDA( cuLinkCreate_v2( 0, nullptr, nullptr, &_link_state ) )
-        _CUDA( cuLinkAddFile_v2( _link_state, CU_JIT_INPUT_LIBRARY,
-                                 CUDA_LIB_PATH_WIN(cudadevrt),
-                                 0, nullptr, nullptr ) )
-        _CUDA( cuLinkAddData_v2( _link_state, CU_JIT_INPUT_PTX,
-                                 (void*) _ptx_src, _ptx_len, "cuda_kernel.ptx",
-                                 0, nullptr, nullptr ) )
+        size_t          _jit_info_log_len = 1 << 14,
+                        _jit_err_log_len = 1 << 14;
+        char            *_jit_info_log_src = new char [ _jit_info_log_len ],
+                        *_jit_err_log_src = new char [ _jit_err_log_len ];
+        
+        size_t          _jit_options_count = 5;
+        CUjit_option    _jit_options_list[] = {
+                CU_JIT_TARGET,
+                CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES,
+                CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES,
+                CU_JIT_INFO_LOG_BUFFER,
+                CU_JIT_ERROR_LOG_BUFFER,
+        };
+        void*           _jit_options_value[] = {
+                (void*) _cc_div_10,
+                (void*) _jit_info_log_len,
+                (void*) _jit_err_log_len,
+                (void*) _jit_info_log_src,
+                (void*) _jit_err_log_src,
+        };
+        
+        _CUDA( cuLinkCreate_v2(
+                _jit_options_count, _jit_options_list, _jit_options_value,
+                &_link_state ) )
+        _CUDA( cuLinkAddFile_v2(
+                _link_state, CU_JIT_INPUT_LIBRARY,
+                CUDA_LIB_PATH_WIN(cudadevrt),
+                0, nullptr, nullptr ) )
+        _CUDA( cuLinkAddData_v2(
+                _link_state, CU_JIT_INPUT_PTX,
+                _ptx_src, _ptx_len, "cuda_kernel.ptx",
+                0, nullptr, nullptr ) )
         _CUDA( cuLinkComplete( _link_state, &_cubin_src, &_cubin_len ) )
         
         // Cleaning build environment
         _error = nvrtcDestroyProgram( &_kernel );
         delete[]        _ptx_src;
+        delete[]        _nvrtc_log_src;
+        delete[]        _jit_info_log_src;
+        delete[]        _jit_err_log_src;
     }
     
     _CUDA( cuModuleLoadData( &_module, _cubin_src ) )

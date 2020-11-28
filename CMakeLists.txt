@@ -12,7 +12,6 @@ set(RT_LIB)
 
 # CUDA configuration
 find_package(CUDA)
-set(CMAKE_CUDA_FLAGS "-arch=sm_${CUDA_ARCH} --use_fast_math")
 set(CMAKE_CUDA_LIBRARY_DIRECTORIES "${CUDA_TOOLKIT_ROOT_DIR}/lib/x64")
 
 list(APPEND RT_INC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
