@@ -25,12 +25,11 @@ int raymarching::Init( rays_Init_args ) {
     
     _CUDA( cuCtxCreate_v2( &_context, 0, _device ) )
     
-    
     {
-        std::string     _cuda_source = IO::read_source( "Source/cuda_kernels.cu" );
-        nvrtcResult     _error;
-        
-        nvrtcProgram    _kernel;
+        std::string         _cuda_source =
+                IO::read_source( __PROJ_DIR__ + "Source/cuda_kernels.cu" );
+        nvrtcResult         _error;
+        nvrtcProgram        _kernel;
         _error = nvrtcCreateProgram(
                 &_kernel,
                 _cuda_source.c_str(),
@@ -38,9 +37,9 @@ int raymarching::Init( rays_Init_args ) {
                 0, nullptr, nullptr
         );
         
-        //  _error = nvrtcAddNameExpression( _kernel, "kernel_Process" );
-        //  _error = nvrtcAddNameExpression( _kernel, "kernel_SetPrimitives" );
-        //  _error = nvrtcAddNameExpression( _kernel, "kernel_SetRays" );
+        _error = nvrtcAddNameExpression( _kernel, "kernel_Process" );
+        _error = nvrtcAddNameExpression( _kernel, "kernel_SetPrimitives" );
+        _error = nvrtcAddNameExpression( _kernel, "kernel_SetRays" );
         
         const char *_options[] = {
                 "-arch=compute_61",
@@ -52,14 +51,14 @@ int raymarching::Init( rays_Init_args ) {
         };
         _error = nvrtcCompileProgram( _kernel, 6, _options );
         
-        size_t _ptx_len;
+        size_t          _ptx_len;
         _error = nvrtcGetPTXSize( _kernel, &_ptx_len );
-        char *_ptx_src = new char [ _ptx_len ];
+        char*           _ptx_src = new char [ _ptx_len ];
         _error = nvrtcGetPTX( _kernel, _ptx_src );
         
         _CUDA( cuModuleLoadDataEx( &_module, _ptx_src, 0, nullptr, nullptr ) )
         
-        delete[] _ptx_src;
+        delete[]        _ptx_src;
     }
     
     //_CUDA( cuModuleLoad( &_module, _PATH ) )
