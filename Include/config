@@ -1,10 +1,10 @@
 #define __MAJOR__       @RayTracing_VERSION_MAJOR@
 #define __MINOR__       @RayTracing_VERSION_MAJOR@
 
-#define __PROJ_DIR__    std::string( "@PROJECT_SOURCE_DIR@/" )
+#define __PROJ_DIR__    "@PROJECT_SOURCE_DIR@/"
 
 #define __CUDA_ENABLE__ 1
-#define __CUDA_ARCH__   @CUDA_ARCH@
-#define __CUDA_DIR__    std::string( "@CMAKE_CUDA_LIBRARY_DIRECTORIES@/" )
+#define __CUDA_ARCH__   "@CUDA_ARCH@"
+#define __CUDA_DIR__    "@CMAKE_CUDA_LIBRARY_DIRECTORIES@/"
 
 #define __OpCL_ENABLE__ 0

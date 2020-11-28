@@ -2,6 +2,8 @@
 
 #include "config.h"
 
+#define STRINGIFY(__STR__)      #__STR__
+
 #define rays_Init_args          const size_t &width, const size_t &height
 #define rays_Process_args
 #define rays_Quit_args

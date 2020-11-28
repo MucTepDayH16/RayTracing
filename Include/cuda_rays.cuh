@@ -16,6 +16,7 @@ class raymarching : public null::raymarching {
     
     CUcontext               _context;
     CUmodule                _module;
+    CUlinkState             _link_state;
     CUstream                _stream[ CUDA_RAYS_STREAM_NUM ], _default_stream;
     CUevent                 _event[ CUDA_RAYS_EVENT_NUM ];
     

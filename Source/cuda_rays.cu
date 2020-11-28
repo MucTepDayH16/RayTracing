@@ -25,9 +25,13 @@ int raymarching::Init( rays_Init_args ) {
     
     _CUDA( cuCtxCreate_v2( &_context, 0, _device ) )
     
+    size_t          _cubin_len;
+    void*           _cubin_src;
+    
     {
+        // Create build environment
         std::string         _cuda_source =
-                IO::read_source( __PROJ_DIR__ + "Source/cuda_kernels.cu" );
+                IO::read_source( std::string(__PROJ_DIR__) + "Source/cuda_kernels.cu" );
         nvrtcResult         _error;
         nvrtcProgram        _kernel;
         _error = nvrtcCreateProgram(
@@ -56,10 +60,21 @@ int raymarching::Init( rays_Init_args ) {
         char*           _ptx_src = new char [ _ptx_len ];
         _error = nvrtcGetPTX( _kernel, _ptx_src );
         
-        _CUDA( cuModuleLoadDataEx( &_module, _ptx_src, 0, nullptr, nullptr ) )
+        _CUDA( cuLinkCreate_v2( 0, nullptr, nullptr, &_link_state ) )
+        _CUDA( cuLinkAddFile_v2( _link_state, CU_JIT_INPUT_LIBRARY,
+                                 CUDA_LIB_PATH_WIN(cudadevrt),
+                                 0, nullptr, nullptr ) )
+        _CUDA( cuLinkAddData_v2( _link_state, CU_JIT_INPUT_PTX,
+                                 (void*) _ptx_src, _ptx_len, "cuda_kernel.ptx",
+                                 0, nullptr, nullptr ) )
+        _CUDA( cuLinkComplete( _link_state, &_cubin_src, &_cubin_len ) )
         
+        // Cleaning build environment
+        _error = nvrtcDestroyProgram( &_kernel );
         delete[]        _ptx_src;
     }
+    
+    _CUDA( cuModuleLoadData( &_module, _cubin_src ) )
     
     //_CUDA( cuModuleLoad( &_module, _PATH ) )
     _CUDA( cuModuleGetFunction( &_process,          _module, "kernel_Process" ) )

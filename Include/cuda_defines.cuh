@@ -1,5 +1,11 @@
 #pragma once
 
+#define CUDA_ARCH_COMPILE_FLAG()    ( std::string("-arch=compute_") + __CUDA_ARCH__ ).c_str()
+
+// Windows library getter
+#define CUDA_LIB_PATH_WIN(__LIB__)  ( std::string(__CUDA_DIR__) + STRINGIFY(__LIB__) + ".lib" ).c_str()
+#define CUDA_LIB_PATH_UNX(__LIB__)  ( std::string(__CUDA_DIR__) + STRINGIFY(__LIB__) + ".a" ).c_str()
+
 #define CUDA_RAYS_STREAM_NUM        1
 #define CUDA_RAYS_DEFAULT_STREAM    0
 
