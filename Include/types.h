@@ -1,6 +1,7 @@
 #pragma once
 
 typedef unsigned char                   raw_byte;
+typedef long long                       coord;
 typedef long                            counter;
 typedef float                           scalar;
 
@@ -23,7 +24,6 @@ struct bazo;
 typedef bazo *bazo_ptr;
 
 typedef scalar( *dist_func )( bazo_ptr, const point & );
-
 typedef point ( *norm_func )( bazo_ptr, const point & );
 
 enum object_type {
@@ -60,6 +60,7 @@ struct bazo {
     norm_func                           norm;
 };
 
+#ifndef __CUDACC_RTC__
 template <typename __STRUCT__>
 bazo create( enum object_type _type, __STRUCT__ *_arg ) {
     primitives::bazo NEW;
@@ -69,5 +70,6 @@ bazo create( enum object_type _type, __STRUCT__ *_arg ) {
     memcpy( NEW.data, _arg, sizeof( __STRUCT__ ) );
     return NEW;
 }
+#endif
 
 };

@@ -1,5 +1,9 @@
 #pragma once
 
+#include "config.h"
+
+#define STRINGIFY(__STR__)      #__STR__
+
 #define rays_Init_args          const size_t &width, const size_t &height
 #define rays_Process_args
 #define rays_Quit_args
@@ -10,32 +14,34 @@
 #define rays_SetRays_args
 
 // PRIMITIVES
+#ifndef CREATE_OBJECT_TYPE_DESCRIPTION
 #define CREATE_OBJECT_TYPE_DESCRIPTION(__TYPE__,__STRUCT__)                                         \
 class __TYPE__ {                                                                                    \
 protected:                                                                                          \
 public:                                                                                             \
     typedef __STRUCT__ data_struct;                                                                 \
-    static inline primitives::bazo create_from( data_struct data ) {                                \
+    static inline bazo create_from( data_struct data ) {                                            \
         return primitives::create( primitives::type_##__TYPE__, &data );                            \
     }                                                                                               \
 };
+#endif
 
 #define CREATE_OBJECT_TYPE_DEFINITION(__TYPE__,__DIST__,__NORM__)                                   \
 __device__ __forceinline__ scalar                                                                   \
 __TYPE__##_dist( primitives::bazo_ptr obj, const point &p ) {                                       \
-    __TYPE__##::data_struct *data = reinterpret_cast<__TYPE__##::data_struct*>( obj->data );        \
+    __TYPE__    ::data_struct *data = reinterpret_cast<__TYPE__  ::data_struct*>( obj->data );      \
     __DIST__                                                                                        \
 }                                                                                                   \
 __device__ __forceinline__ point                                                                    \
 __TYPE__##_norm( primitives::bazo_ptr obj, const point &p ) {                                       \
-    __TYPE__##::data_struct *data = reinterpret_cast<__TYPE__##::data_struct*>( obj->data );        \
+    __TYPE__    ::data_struct *data = reinterpret_cast<__TYPE__  ::data_struct*>( obj->data );      \
     __NORM__                                                                                        \
 }
 
 #define CREATE_OBJECT_TYPE_PROCESSING_2(__SELF__,__TYPE__)                                          \
 case primitives::type_##__TYPE__:                                                                   \
-    __SELF__->dist = primitives::##__TYPE__##_dist;                                                 \
-    __SELF__->norm = primitives::##__TYPE__##_norm;                                                 \
+    __SELF__->dist = primitives::   __TYPE__##_dist;                                                \
+    __SELF__->norm = primitives::   __TYPE__##_norm;                                                \
     break;
 
 #define CREATE_OBJECT_TYPE_PROCESSING_LISTING_2(__SELF__)                                           \
@@ -63,7 +69,7 @@ switch ( __SELF__->type ) {                                                     
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioZ );                                          \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, rotacioQ );                                          \
     CREATE_OBJECT_TYPE_PROCESSING_2( __SELF__, senfina_ripeto );                                    \
-    default: __SELF__->dist = nullptr; __SELF__->norm = nullptr;                                    \
+    default: /* do nothing */                                                                       \
 }
 
 #define RAYS_DIST(__SELF__,__POINT__) ((__SELF__)->dist((__SELF__),(__POINT__)))
@@ -73,7 +79,7 @@ switch ( __SELF__->type ) {                                                     
 // RAYMARCHING
 #define PRIMITIVE_PAYLOAD           24
 
-#define RAYS_PRIMITIVES_PER_THREAD 2
+#define RAYS_PRIMITIVES_PER_THREAD  2
 
 #define RAYS_BLOCK_1D_x             128
 

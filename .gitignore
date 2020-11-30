@@ -21,3 +21,4 @@ Include/config.h
 
 # NVidia activity files
 *.nvact
+*.cubin

@@ -1,6 +1,7 @@
 #include "../Include/cuda_rays.cuh"
 
 #define _CUDA(__ERROR__)    {_last_cuda_error = CUresult(__ERROR__); CUDA_CHECK(_last_cuda_error);}
+#define _NVRTC(__ERROR__)   {_last_nvrtc_error = __ERROR__; }
 #define _RETURN             return int(_last_cuda_error);
 
 #define grid_1d(X)          (dim3( ( (X) - 1 ) / RAYS_BLOCK_1D_x + 1 ))
@@ -10,12 +11,6 @@
 #define block_2d            (dim3((RAYS_BLOCK_2D_x),(RAYS_BLOCK_2D_y)))
 
 #define _KERNEL(__FUNC__)    _CUDA(cuLaunchKernel((__FUNC__),grid.x,grid.y,grid.z,block.x,block.y,block.z,0,_default_stream,args,nullptr))
-
-#ifdef _DEBUG
-#define _PATH "./cmake-build-debug/CMakeFiles/CudaPTX.dir/Source/cuda_kernels.ptx"
-#else
-#define _PATH "./cmake-build-release/CMakeFiles/CudaPTX.dir/Source/cuda_kernels.ptx"
-#endif
 
 namespace cuda {
 
@@ -30,7 +25,95 @@ int raymarching::Init( rays_Init_args ) {
     _CUDA( cuDeviceGetName( _device_name, 128, _device ) )
     
     _CUDA( cuCtxCreate_v2( &_context, 0, _device ) )
-    _CUDA( cuModuleLoad( &_module, _PATH ) )
+    
+    size_t          _cubin_len;
+    void*           _cubin_src;
+    
+    {
+        // Create build environment
+        std::string         _cuda_source =
+                IO::read_source( std::string(__PROJ_DIR__) + "Source/cuda_kernels.cu" );
+        nvrtcProgram        _kernel;
+        _NVRTC( nvrtcCreateProgram(
+                &_kernel,
+                _cuda_source.c_str(),
+                "cudaRayMarching",
+                0, nullptr, nullptr ) )
+        
+        _NVRTC( nvrtcAddNameExpression( _kernel, "kernel_Process" ) )
+        _NVRTC( nvrtcAddNameExpression( _kernel, "kernel_SetPrimitives" ) )
+        _NVRTC( nvrtcAddNameExpression( _kernel, "kernel_SetRays" ) )
+        
+        const std::string _arch_flag = "-arch=compute_" + std::to_string(_cc_div_10);
+        const char*     _options[] = {
+                _arch_flag.c_str(),
+                "-use_fast_math",
+                "-dc",
+                "-std=c++17",
+                "-builtin-initializer-list=true",
+                "-I./Include",
+        };
+        _NVRTC( nvrtcCompileProgram( _kernel, 6, _options ) )
+        
+        size_t          _nvrtc_log_len;
+        _NVRTC( nvrtcGetProgramLogSize( _kernel, &_nvrtc_log_len ) )
+        char*           _nvrtc_log_src = new char [ _nvrtc_log_len ];
+        _NVRTC( nvrtcGetProgramLog( _kernel, _nvrtc_log_src ))
+        
+        size_t          _ptx_len;
+        _NVRTC( nvrtcGetPTXSize( _kernel, &_ptx_len ) )
+        char*           _ptx_src = new char [ _ptx_len ];
+        _NVRTC( nvrtcGetPTX( _kernel, _ptx_src ) )
+        
+        size_t          _jit_info_log_len = 1 << 14,
+                        _jit_err_log_len = 1 << 14;
+        char            *_jit_info_log_src = new char [ _jit_info_log_len ],
+                        *_jit_err_log_src = new char [ _jit_err_log_len ];
+        
+        size_t          _jit_options_count = 5;
+        CUjit_option    _jit_options_list[] = {
+                CU_JIT_TARGET,
+                CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES,
+                CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES,
+                CU_JIT_INFO_LOG_BUFFER,
+                CU_JIT_ERROR_LOG_BUFFER,
+        };
+        void*           _jit_options_value[] = {
+                (void*) _cc_div_10,
+                (void*) _jit_info_log_len,
+                (void*) _jit_err_log_len,
+                (void*) _jit_info_log_src,
+                (void*) _jit_err_log_src,
+        };
+        
+        _CUDA( cuLinkCreate_v2(
+                _jit_options_count, _jit_options_list, _jit_options_value,
+                &_link_state ) )
+        _CUDA( cuLinkAddFile_v2(
+                _link_state, CU_JIT_INPUT_LIBRARY,
+                CUDA_LIB_PATH_WIN(cudadevrt),
+                0, nullptr, nullptr ) )
+        _CUDA( cuLinkAddData_v2(
+                _link_state, CU_JIT_INPUT_PTX,
+                _ptx_src, _ptx_len, "cuda_kernel.ptx",
+                0, nullptr, nullptr ) )
+        _CUDA( cuLinkComplete( _link_state, &_cubin_src, &_cubin_len ) )
+        
+        // Cleaning build environment
+        _NVRTC( nvrtcDestroyProgram( &_kernel ) )
+        delete[]        _ptx_src;
+        delete[]        _nvrtc_log_src;
+        delete[]        _jit_info_log_src;
+        delete[]        _jit_err_log_src;
+        
+        auto *_file_name = new std::string(__PROJ_DIR__);
+        *_file_name += "cuda_kernel_" + std::to_string(_cc_div_10) + ".cubin";
+        IO::write_binary_nowait( _file_name, _cubin_src, _cubin_len );
+    }
+    
+    _CUDA( cuModuleLoadData( &_module, _cubin_src ) )
+    
+    //_CUDA( cuModuleLoad( &_module, _PATH ) )
     _CUDA( cuModuleGetFunction( &_process,          _module, "kernel_Process" ) )
     _CUDA( cuModuleGetFunction( &_set_primitives,   _module, "kernel_SetPrimitives" ) )
     _CUDA( cuModuleGetFunction( &_set_rays,         _module, "kernel_SetRays" ) )

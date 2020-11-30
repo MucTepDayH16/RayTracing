@@ -65,7 +65,14 @@ int main( int argc, char **argv ) {
     
     
     // Compute environment setup
-    null::raymarching* CUDA = new cuda::raymarching;
+    null::raymarching* CUDA =
+#if     __CUDA_ENABLE__
+            new cuda::raymarching;
+#elif   __OpCL_ENABLE__
+            new null::raymarching;
+#else   // NOTHING IS ENABLE
+            new null::raymarching;
+#endif
     CUDA->Init( Width, Height );
     
     GLuint tex;

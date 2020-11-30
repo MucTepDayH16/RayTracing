@@ -11,16 +11,18 @@ namespace cuda {
 
 class raymarching : public null::raymarching {
     CUdevice                _device;
-    uint8_t                 _cc_div_10;
+    uint64_t                _cc_div_10;
     char                    _device_name[128];
     
     CUcontext               _context;
     CUmodule                _module;
+    CUlinkState             _link_state;
     CUstream                _stream[ CUDA_RAYS_STREAM_NUM ], _default_stream;
     CUevent                 _event[ CUDA_RAYS_EVENT_NUM ];
     
     float                   _last_process_time;
     CUresult                _last_cuda_error;
+    nvrtcResult             _last_nvrtc_error;
     
     CUfunction              _process, _set_rays, _set_primitives;
     CUdeviceptr             _rays, _info, _prim;
