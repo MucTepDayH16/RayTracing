@@ -29,10 +29,21 @@ int raymarching::Init( rays_Init_args ) {
     size_t          _cubin_len;
     void*           _cubin_src;
     
-    {
+    std::string     _cuda_source =
+            IO::read_source( std::string(__PROJ_DIR__) + "Source/cuda_kernels.cu" );
+    uint8_t*        _hash = SHA3_256( _cuda_source );
+    std::string     _hash_file =
+            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels.hash";
+    std::vector<char>   _hash_source =
+            IO::read_binary( _hash_file );
+    
+    std::string     _cubin_file =
+            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels_" + std::to_string(_cc_div_10) + ".cubin";
+    std::vector<char>   _cubin_source =
+            IO::read_binary( _cubin_file );
+    
+    if ( _cubin_source.empty() || _hash_source.size() < 32 || memcmp( _hash, _hash_source.data(), 32 ) != 0 ) {
         // Create build environment
-        std::string         _cuda_source =
-                IO::read_source( std::string(__PROJ_DIR__) + "Source/cuda_kernels.cu" );
         nvrtcProgram        _kernel;
         _NVRTC( nvrtcCreateProgram(
                 &_kernel,
@@ -106,9 +117,11 @@ int raymarching::Init( rays_Init_args ) {
         delete[]        _jit_info_log_src;
         delete[]        _jit_err_log_src;
         
-        auto *_file_name = new std::string(__PROJ_DIR__);
-        *_file_name += "cuda_kernel_" + std::to_string(_cc_div_10) + ".cubin";
-        IO::write_binary_nowait( _file_name, _cubin_src, _cubin_len );
+        IO::write_binary( _cubin_file, _cubin_src, _cubin_len );
+        IO::write_binary( _hash_file, _hash, 32 );
+    } else {
+        _cubin_src = _cubin_source.data();
+        _cubin_len = _cubin_source.size();
     }
     
     _CUDA( cuModuleLoadData( &_module, _cubin_src ) )

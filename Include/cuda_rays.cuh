@@ -3,6 +3,8 @@
 #include "rays.h"
 #include "cuda_defines.cuh"
 
+#include "sha3.hpp"
+
 #include <cuda.h>
 #include <cudaGL.h>
 #include <nvrtc.h>

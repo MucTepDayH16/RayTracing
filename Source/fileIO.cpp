@@ -7,6 +7,11 @@ using namespace std;
 
 string      read_source( const string &file_name ) {
     ifstream fin( file_name.c_str() );
+    if ( !fin.is_open() ) {
+        string ret = "";
+        fin.close();
+        return ret;
+    }
     string file_content((istreambuf_iterator<char>(fin)), istreambuf_iterator<char>());
     fin.close();
     return file_content;
@@ -18,13 +23,19 @@ void        write_source( const string &file_name, const string &to_write ) {
     fout.close();
 }
 
-char*       read_binary( const std::string &file_name ) {
+vector<char> read_binary( const std::string &file_name ) {
     ifstream fin( file_name.c_str(), ios::binary | ios::ate );
+    if ( !fin.is_open() ) {
+        vector<char> ret = {};
+        fin.close();
+        return  ret;
+    }
+    
     size_t len = fin.tellg();
     fin.seekg( 0, ios::beg );
     
-    char *src = new char [ len ];
-    fin.read( src, len );
+    vector<char> src( len );
+    fin.read( src.data(), len );
     fin.close();
     return src;
 }
@@ -44,9 +55,7 @@ struct write_binary_args {
 };
 
 static int  write_binary_th( void *data ) {
-    ofstream fout( DATA->file_name->c_str(), ios::binary | ios::trunc );
-    fout.write( reinterpret_cast<const char*>(DATA->src), DATA->len );
-    fout.close();
+    write_binary( *DATA->file_name, DATA->src, DATA->len );
     
     delete DATA->file_name;
     return 0;
@@ -59,6 +68,7 @@ void        write_binary_nowait( const std::string *file_name, const void *src, 
             .len = len,
     };
     SDL_Thread  *write_th = SDL_CreateThread( write_binary_th, "write_binary", &args );
+    SDL_DetachThread( write_th );
 }
 
 };

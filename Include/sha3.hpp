@@ -1,12 +1,13 @@
-#include "../Include/sha3.h"
+#include <cstdint>
+#include <string>
 
 #define ROT_64(__VAL__,__ROT__) uint64_t((__VAL__) << (__ROT__) | (__VAL__) >> (64-(__ROT__)) )
 
 
 namespace sha3 {
 
-static inline void keccak_permute( uint64_t a[ 5 ][ 5 ] ) {
-    const uint64_t
+inline void keccak_permute( uint64_t a[ 5 ][ 5 ] ) {
+    static const uint64_t
     R[ 24 ] = {
             0x0000000000000001uL, 0x0000000000008082uL, 0x800000000000808auL,
             0x8000000080008000uL, 0x000000000000808buL, 0x0000000080000001uL,
@@ -65,14 +66,15 @@ static inline void keccak_permute( uint64_t a[ 5 ][ 5 ] ) {
     }
 }
 
-#define BITRATE 576uL
-#define WIDTH   64uL
-#define BLOCK   ( BITRATE / WIDTH )
-#define PITCH   ( BLOCK << 3u )
-
-#define LENGTH  ( BITRATE >> 3u )
-
-uint8_t* hash_512( std::string source ) {
+template<size_t HASH_BITRATE, size_t HASH_LENGTH> uint8_t*
+hash( std::string source ) {
+    static const uint64_t
+        BLOCK = HASH_BITRATE >> 6u,
+        PITCH = BLOCK << 3u,
+        LENGTH = HASH_BITRATE >> 3u,
+        HASH_LENGTH_BYTE = HASH_LENGTH >> 3u,
+        HASH_LENGTH_UI64 = HASH_LENGTH >> 6u;
+    
     uint64_t state[ 5 ][ 5 ] = {
             { 0uL, 0uL, 0uL, 0uL, 0uL },
             { 0uL, 0uL, 0uL, 0uL, 0uL },
@@ -103,8 +105,8 @@ uint8_t* hash_512( std::string source ) {
         keccak_permute( state );
     }
     
-    uint8_t *ret_hash = new uint8_t [ 64 ];
-    for ( i = 0; i < 8; ++i ) {
+    uint8_t *ret_hash = new uint8_t [ HASH_LENGTH_BYTE ];
+    for ( i = 0; i < HASH_LENGTH_UI64; ++i ) {
         memcpy( ret_hash + ( i << 3u ), &state[ i % 5 ][ i / 5 ], 8 );
     }
     
@@ -112,3 +114,8 @@ uint8_t* hash_512( std::string source ) {
 }
 
 };
+
+#define SHA3_224(__STRING__) sha3::hash<1152, 224>(__STRING__)
+#define SHA3_256(__STRING__) sha3::hash<1088, 256>(__STRING__)
+#define SHA3_384(__STRING__) sha3::hash<832, 384>(__STRING__)
+#define SHA3_512(__STRING__) sha3::hash<576, 512>(__STRING__)

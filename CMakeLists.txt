@@ -6,7 +6,7 @@ set(RT_CXX_SRC
         ${PROJECT_SOURCE_DIR}/Source/main.cpp
         ${PROJECT_SOURCE_DIR}/Source/fileIO.cpp
         ${PROJECT_SOURCE_DIR}/Source/cuda_rays.cu
-        ${PROJECT_SOURCE_DIR}/Source/sha3.cpp)
+        )
 set(RT_LIB)
 
 
