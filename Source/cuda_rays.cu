@@ -33,7 +33,7 @@ int raymarching::Init( rays_Init_args ) {
             IO::read_source( std::string(__PROJ_DIR__) + "Source/cuda_kernels.cu" );
     uint8_t*        _hash = SHA3_256( _cuda_source );
     std::string     _hash_file =
-            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels.cuhash";
+            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels.cu.hash";
     std::vector<char>   _hash_source =
             IO::read_binary( _hash_file );
     
@@ -41,7 +41,7 @@ int raymarching::Init( rays_Init_args ) {
 #ifdef _DEBUG
             std::string(__PROJ_DIR__) + "CuBin/cuda_kernels_" + std::to_string(_cc_div_10) + ".debug.cubin";
 #else
-            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels_" + std::to_string(_cc_div_10) + ".release.cubin";
+            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels_" + std::to_string(_cc_div_10) + ".cubin";
 #endif
     std::vector<char>   _cubin_source =
             IO::read_binary( _cubin_file );
