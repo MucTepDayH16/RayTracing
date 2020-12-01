@@ -38,7 +38,11 @@ int raymarching::Init( rays_Init_args ) {
             IO::read_binary( _hash_file );
     
     std::string     _cubin_file =
-            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels_" + std::to_string(_cc_div_10) + ".cubin";
+#ifdef _DEBUG
+            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels_" + std::to_string(_cc_div_10) + ".debug.cubin";
+#else
+            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels_" + std::to_string(_cc_div_10) + ".release.cubin";
+#endif
     std::vector<char>   _cubin_source =
             IO::read_binary( _cubin_file );
     
@@ -56,6 +60,20 @@ int raymarching::Init( rays_Init_args ) {
         _NVRTC( nvrtcAddNameExpression( _kernel, "kernel_SetRays" ) )
         
         const std::string _arch_flag = "-arch=compute_" + std::to_string(_cc_div_10);
+#ifdef _DEBUG
+        size_t          _option_count = 8;
+        const char*     _options[] = {
+                _arch_flag.c_str(),
+                "-use_fast_math",
+                "-dc",
+                "-std=c++17",
+                "-builtin-initializer-list=true",
+                "-I./Include",
+                "-G",
+                "-lineinfo",
+        };
+#else
+        size_t          _option_count = 6;
         const char*     _options[] = {
                 _arch_flag.c_str(),
                 "-use_fast_math",
@@ -64,7 +82,8 @@ int raymarching::Init( rays_Init_args ) {
                 "-builtin-initializer-list=true",
                 "-I./Include",
         };
-        _NVRTC( nvrtcCompileProgram( _kernel, 6, _options ) )
+#endif
+        _NVRTC( nvrtcCompileProgram( _kernel, _option_count, _options ) )
         
         size_t          _nvrtc_log_len;
         _NVRTC( nvrtcGetProgramLogSize( _kernel, &_nvrtc_log_len ) )
