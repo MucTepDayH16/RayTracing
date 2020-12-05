@@ -3,10 +3,11 @@
 ## About
 3d visualizer, using raymarching technology to draw vectorized primitives
 
-## Dependencies
+## Build requirements
 
-* NVidia GPU and CUDA toolkit (*CUDA>=11.0.197*)
-* Simple DirectMedia Layer library (*SDL>=2.0.12*)
+* _CMake >= 3.17_
+* _NVidia GPU and CUDA toolkit >= 11.0_
+* _Simple DirectMedia Layer library (SDL) >= 2.0_
 
 ## Building
 
