@@ -563,7 +563,7 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
         point curr_norm, light =  Info_d->LightSource; //point{ 1.f, 0.f, 0.f };
 
 #pragma unroll
-        for ( size_t I = 0; I < RAYS_MAX_COUNTER; ++I ) {
+        for ( size_t I = 0; I < 500; ++I ) {
             curr_dist = RAYS_DIST( curr_ptr, r.p );
 
             if ( curr_dist < RAYS_MIN_DIST ) {
@@ -581,7 +581,6 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
                     N_L = atomic::dot( curr_norm, light );
 
                     float
-                        AMBIENT = 1.f,
                         SHADOW = 1.f,
                         OCCLUSION = 0.f,
                         SCA = 1.f;
@@ -589,51 +588,54 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
 
                     ray_dist = RAYS_MIN_DIST;
 
-#pragma unroll
-                    for ( size_t J = 0; J < 5; ++J ) {
-                        curr_dist = RAYS_DIST( curr_ptr, p );
-                        OCCLUSION += ( ray_dist - curr_dist ) * SCA;
-                        SCA *= .95;
+//  #pragma unroll
+//                      for ( size_t J = 0; J < 5; ++J ) {
+//                          curr_dist = RAYS_DIST( curr_ptr, p );
+//                          OCCLUSION += ( ray_dist - curr_dist ) * SCA;
+//                          SCA *= .95;
+//
+//                          p.x += .04 * curr_dist * curr_norm.x;
+//                          p.y += .04 * curr_dist * curr_norm.y;
+//                          p.z += .04 * curr_dist * curr_norm.z;
+//                          ray_dist += curr_dist;
+//                      }
+//                      OCCLUSION = ( 1.f - 1.5f * OCCLUSION );
+//                      if ( OCCLUSION > 1.f )
+//                          OCCLUSION = 1.f;
+//                      if ( OCCLUSION < 0.f )
+//                          OCCLUSION = 0.f;
 
-                        p.x += .04 * curr_dist * curr_norm.x;
-                        p.y += .04 * curr_dist * curr_norm.y;
-                        p.z += .04 * curr_dist * curr_norm.z;
-                        ray_dist += curr_dist;
-                    }
+#define DELTA       5
+#define HARDNESS    128.f
 
                     p = r.p;
-                    p.x += RAYS_MIN_DIST * light.x;
-                    p.y += RAYS_MIN_DIST * light.y;
-                    p.z += RAYS_MIN_DIST * light.z;
-                    ray_dist = RAYS_MIN_DIST;
+                    p.x += DELTA * RAYS_MIN_DIST * light.x;
+                    p.y += DELTA * RAYS_MIN_DIST * light.y;
+                    p.z += DELTA * RAYS_MIN_DIST * light.z;
+                    ray_dist = DELTA * RAYS_MIN_DIST;
 
-#pragma unroll
-                    for ( size_t J = 0; J < RAYS_MAX_COUNTER; ++J ) {
+//#pragma unroll
+                    for ( size_t J = 0; J < 200; ++J ) {
                         curr_dist = RAYS_DIST( curr_ptr, p );
-
-                        if ( 10 * curr_dist < RAYS_MIN_DIST ) {
-                            // NO LIGHT
-                            SHADOW = 0x00;
+                        
+                        SHADOW = min( SHADOW, HARDNESS * curr_dist / ray_dist );
+                        if ( SHADOW < 0.01f )
                             break;
-                        }
-
-                        SHADOW = min( SHADOW, RAYS_SHADOW * curr_dist / ray_dist );
 
                         p.x += curr_dist * light.x;
                         p.y += curr_dist * light.y;
                         p.z += curr_dist * light.z;
                         ray_dist += curr_dist;
 
-                        if ( ray_dist < RAYS_MAX_DIST ) {
-                            // LIGHT
+                        // LIGHT
+                        if ( ray_dist >= RAYS_MAX_DIST )
                             break;
-                        }
                     }
 
                     float3 MATERIAL = { 1.f, 1.f, 1.f };
                     raw_byte LIGHT =
-                        //0xff * ( RAYS_MIN_LUM * () + .5f * ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( 1.f + R_1 * N_L ) );
-                        0xff * ( RAYS_MIN_LUM * AMBIENT * OCCLUSION + ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( N_L > 0.f ? N_L : 0.f ) * SHADOW );
+                        0xff * ( RAYS_MIN_LUM + ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( N_L > 0.f ? N_L : 0.f ) * SHADOW );
+                        //  0xff * ( RAYS_MIN_LUM + ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * .5f * ( N_L + 1.f ) * SHADOW );
                     PIXEL = {
                          raw_byte( LIGHT * MATERIAL.x ),
                          raw_byte( LIGHT * MATERIAL.y ),

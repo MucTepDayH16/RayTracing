@@ -47,7 +47,7 @@ int main( int argc, char **argv ) {
     if ( !correctInit[ 1 ] ) Height = DM.h;
 
     SDL_Window *Win = SDL_CreateWindow(
-        "GL",
+        "RayTracing",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         Width, Height,
         SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS );
@@ -58,7 +58,6 @@ int main( int argc, char **argv ) {
     glOrtho( 0.f, Width, Height, 1.f, -1.f, 1.f );
     glEnable( GL_BLEND );
     glEnable( GL_TEXTURE_2D );
-    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
     SDL_Event Event;
     SDL_Point currMouse{ 0, 0 }, prevMouse;
@@ -140,9 +139,8 @@ int main( int argc, char **argv ) {
     
     
     // Start
-    cout << "Start" << endl;
     size_t compute_time, this_time, prev_time;
-    bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false, run;
+    bool MIDDLE_BUTTON = false, RIGHT_BUTTON = false, run, pause = false;
     for ( run = true, this_time = SDL_GetTicks(), prev_time = this_time;
           run;
           prev_time = this_time, this_time = SDL_GetTicks() ) {
@@ -186,12 +184,16 @@ int main( int argc, char **argv ) {
                     Info_h.StartHVec = point{ scale * sin_theta * cos_phi, scale * sin_theta * sin_phi, -scale * cos_theta };
 
                     break;
+                case SDLK_p:
+                    pause = true;
                 }
                 break;
             case SDL_KEYUP:
                 switch ( Event.key.keysym.sym ) {
                 case SDLK_ESCAPE:
                     break;
+                case SDLK_p:
+                    pause = false;
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:
@@ -256,11 +258,12 @@ int main( int argc, char **argv ) {
             }
         }
 
-        Info_h.LightSource = point{
-            cos_1 * Info_h.LightSource.x - sin_1 * Info_h.LightSource.y,
-            sin_1 * Info_h.LightSource.x + cos_1 * Info_h.LightSource.y,
-            Info_h.LightSource.z
-        };
+        if ( !pause )
+            Info_h.LightSource = point{
+                cos_1 * Info_h.LightSource.x - sin_1 * Info_h.LightSource.y,
+                sin_1 * Info_h.LightSource.x + cos_1 * Info_h.LightSource.y,
+                Info_h.LightSource.z
+            };
 
         // Render Scene
         CUDA->SetInfo( Info_h );
