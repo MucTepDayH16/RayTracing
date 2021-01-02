@@ -95,10 +95,13 @@ CREATE_OBJECT_TYPE_DEFINITION(
             q.x = fabsf( p.x ) - data->b.x;
             q.y = fabsf( p.y ) - data->b.y;
             q.z = fabsf( p.z ) - data->b.z;
-            return q.x > q.z ? ( q.x > q.y ? atomic::new_point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : atomic::new_point(
-                    0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? atomic::new_point( 0.f, p.y > 0.f ? 1.f : -1.f,
-                                                                                            0.f ) : atomic::new_point(
-                    0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
+            if ( q.x < 0.f && q.y < 0.f && q.z < 0.f )
+                return q.x > q.z ? ( q.x > q.y ? atomic::new_point( p.x > 0.f ? 1.f : -1.f, 0.f, 0.f ) : atomic::new_point(
+                        0.f, p.y > 0.f ? 1.f : -1.f, 0.f ) ) : ( q.y > q.z ? atomic::new_point( 0.f, p.y > 0.f ? 1.f : -1.f,
+                                                                                                0.f ) : atomic::new_point(
+                        0.f, 0.f, p.z > 0.f ? 1.f : -1.f ) );
+            else
+                return atomic::new_point( q.x > 0.f ? p.x > 0.f ? 1.f : -1.f : 0.f, q.y > 0.f ? p.y > 0.f ? 1.f : -1.f : 0.f, q.z > 0.f ? p.z > 0.f ? 1.f : -1.f : 0.f );
         } );
 
 CREATE_OBJECT_TYPE_DEFINITION(
@@ -161,7 +164,9 @@ CREATE_OBJECT_TYPE_DEFINITION(
             d = min( d, RAYS_DIST( o, p ) );
             
             o = obj + data->o[ 2 ];
-            return min( d, RAYS_DIST( o, p ) );
+            d = min( d, RAYS_DIST( o, p ) );
+            
+            return d;
         },
         {
             counter              i_min = 0;
@@ -187,20 +192,46 @@ CREATE_OBJECT_TYPE_DEFINITION(
 CREATE_OBJECT_TYPE_DEFINITION(
         kunigajo_4,
         {
-            primitives::bazo_ptr o0 = obj + data->o[ 0 ];
-            primitives::bazo_ptr o1 = obj + data->o[ 1 ];
-            scalar               d0 = RAYS_DIST( o0, p );
-            scalar               d1 = RAYS_DIST( o1, p );
-            return min( d0, d1 );
+            primitives::bazo_ptr o = obj + data->o[ 0 ];
+            scalar               d = RAYS_DIST( o, p );
+            
+            o = obj + data->o[ 1 ];
+            d = min( d, RAYS_DIST( o, p ) );
+            
+            o = obj + data->o[ 2 ];
+            d = min( d, RAYS_DIST( o, p ) );
+            
+            o = obj + data->o[ 3 ];
+            d = min( d, RAYS_DIST( o, p ) );
+            
+            return  d;
         },
         {
-            primitives::bazo_ptr o0 = obj + data->o[ 0 ];
-            primitives::bazo_ptr o1 = obj + data->o[ 1 ];
-            scalar               d0 = RAYS_DIST( o0, p );
-            scalar               d1 = RAYS_DIST( o1, p );
+            counter              i_min = 0;
+            primitives::bazo_ptr o     = obj + data->o[ 0 ];
+            scalar               d;
+            scalar               d_min = RAYS_DIST( o, p );
             
-            if ( d0 < d1 ) return RAYS_NORM( o0, p );
-            else return RAYS_NORM( o1, p );
+            o = obj + data->o[ 1 ];
+            d = RAYS_DIST( o, p );
+            if ( d_min > d ) {
+                d_min = d;
+                i_min = 1;
+            }
+            
+            o = obj + data->o[ 2 ];
+            d = RAYS_DIST( o, p );
+            if ( d_min > d ) {
+                d_min = d;
+                i_min = 2;
+            }
+            
+            o = obj + data->o[ 3 ];
+            d = RAYS_DIST( o, p );
+            if ( d_min > d ) { i_min = 3; }
+            
+            o = obj + data->o[ i_min ];
+            return RAYS_NORM( o, p );
         } );
 
 CREATE_OBJECT_TYPE_DEFINITION(
@@ -232,7 +263,9 @@ CREATE_OBJECT_TYPE_DEFINITION(
             d = max( d, RAYS_DIST( o, p ) );
             
             o = obj + data->o[ 2 ];
-            return max( d, RAYS_DIST( o, p ) );
+            d = max( d, RAYS_DIST( o, p ) );
+            
+            return  d;
         },
         {
             counter              i_max = 0;
@@ -258,20 +291,46 @@ CREATE_OBJECT_TYPE_DEFINITION(
 CREATE_OBJECT_TYPE_DEFINITION(
         komunajo_4,
         {
-            primitives::bazo_ptr o0 = obj + data->o[ 0 ];
-            primitives::bazo_ptr o1 = obj + data->o[ 1 ];
-            scalar               d0 = RAYS_DIST( o0, p );
-            scalar               d1 = RAYS_DIST( o1, p );
-            return max( d0, d1 );
+            primitives::bazo_ptr o = obj + data->o[ 0 ];
+            scalar               d = RAYS_DIST( o, p );
+            
+            o = obj + data->o[ 1 ];
+            d = max( d, RAYS_DIST( o, p ) );
+            
+            o = obj + data->o[ 2 ];
+            d = max( d, RAYS_DIST( o, p ) );
+            
+            o = obj + data->o[ 3 ];
+            d = max( d, RAYS_DIST( o, p ) );
+            
+            return  d;
         },
         {
-            primitives::bazo_ptr o0 = obj + data->o[ 0 ];
-            primitives::bazo_ptr o1 = obj + data->o[ 1 ];
-            scalar               d0 = RAYS_DIST( o0, p );
-            scalar               d1 = RAYS_DIST( o1, p );
+            counter              i_max = 0;
+            primitives::bazo_ptr o     = obj + data->o[ 0 ];
+            scalar               d;
+            scalar               d_max = RAYS_DIST( o, p );
             
-            if ( d0 > d1 ) return RAYS_NORM( o0, p );
-            else return RAYS_NORM( o1, p );
+            o = obj + data->o[ 1 ];
+            d = RAYS_DIST( o, p );
+            if ( d_max < d ) {
+                d_max = d;
+                i_max = 1;
+            }
+            
+            o = obj + data->o[ 2 ];
+            d = RAYS_DIST( o, p );
+            if ( d_max < d ) {
+                d_max = d;
+                i_max = 2;
+            }
+            
+            o = obj + data->o[ 3 ];
+            d = RAYS_DIST( o, p );
+            if ( d_max < d ) { i_max = 3; }
+            
+            o = obj + data->o[ i_max ];
+            return RAYS_NORM( o, p );
         } );
 
 CREATE_OBJECT_TYPE_DEFINITION(
@@ -541,7 +600,8 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
     coord
         x = CUDA_RAYS_COORD_nD( x, 2 ),
         y = CUDA_RAYS_COORD_nD( y, 2 ),
-        id = RAYS_PRIMITIVES_PER_THREAD * ( threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x );
+        id = RAYS_PRIMITIVES_PER_THREAD * ( threadIdx.y * RAYS_BLOCK_2D_x + threadIdx.x ),
+        w = *Width, h = *Height;
 
     // RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * PRIMITIVES_PER_THREAD >= PrimitivesNum
     __shared__ primitives::bazo curr_ptr[ RAYS_BLOCK_2D_x * RAYS_BLOCK_2D_y * RAYS_PRIMITIVES_PER_THREAD ];
@@ -556,9 +616,9 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
     }
     __syncthreads();
 
-    if ( x < *Width && y < *Height ) {
+    if ( x < w && y < h ) {
         scalar curr_dist, ray_dist = 0;
-        ray r = Rays[ y * *Width + x ];
+        ray r = Rays[ y * w + x ];
         uchar4 PIXEL = { 0x00, 0x00, 0x00, 0xff };
         point curr_norm, light =  Info_d->LightSource; //point{ 1.f, 0.f, 0.f };
 
@@ -588,23 +648,6 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
 
                     ray_dist = RAYS_MIN_DIST;
 
-//  #pragma unroll
-//                      for ( size_t J = 0; J < 5; ++J ) {
-//                          curr_dist = RAYS_DIST( curr_ptr, p );
-//                          OCCLUSION += ( ray_dist - curr_dist ) * SCA;
-//                          SCA *= .95;
-//
-//                          p.x += .04 * curr_dist * curr_norm.x;
-//                          p.y += .04 * curr_dist * curr_norm.y;
-//                          p.z += .04 * curr_dist * curr_norm.z;
-//                          ray_dist += curr_dist;
-//                      }
-//                      OCCLUSION = ( 1.f - 1.5f * OCCLUSION );
-//                      if ( OCCLUSION > 1.f )
-//                          OCCLUSION = 1.f;
-//                      if ( OCCLUSION < 0.f )
-//                          OCCLUSION = 0.f;
-
 #define DELTA       5
 #define HARDNESS    128.f
 
@@ -615,22 +658,22 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
                     ray_dist = DELTA * RAYS_MIN_DIST;
 
 //#pragma unroll
-                    for ( size_t J = 0; J < 200; ++J ) {
-                        curr_dist = RAYS_DIST( curr_ptr, p );
-                        
-                        SHADOW = min( SHADOW, HARDNESS * curr_dist / ray_dist );
-                        if ( SHADOW < 0.01f )
-                            break;
+                   for ( size_t J = 0; J < 200; ++J ) {
+                       curr_dist = RAYS_DIST( curr_ptr, p );
+                   
+                       SHADOW = min( SHADOW, HARDNESS * curr_dist / ray_dist );
+                       if ( SHADOW < 0.01f )
+                           break;
 
-                        p.x += curr_dist * light.x;
-                        p.y += curr_dist * light.y;
-                        p.z += curr_dist * light.z;
-                        ray_dist += curr_dist;
+                       p.x += curr_dist * light.x;
+                       p.y += curr_dist * light.y;
+                       p.z += curr_dist * light.z;
+                       ray_dist += curr_dist;
 
-                        // LIGHT
-                        if ( ray_dist >= RAYS_MAX_DIST )
-                            break;
-                    }
+                       // LIGHT
+                       if ( ray_dist >= RAYS_MAX_DIST )
+                           break;
+                   }
 
                     float3 MATERIAL = { 1.f, 1.f, 1.f };
                     raw_byte LIGHT =

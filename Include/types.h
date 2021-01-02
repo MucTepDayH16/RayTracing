@@ -28,19 +28,19 @@ typedef point ( *norm_func )( bazo_ptr, const point & );
 
 enum object_type {
     type_nenio =                        0x0000,
-    type_portanta_sfero,                // BROKEN ILLUMINATION
+    type_portanta_sfero,                //  BROKEN ILLUMINATION
     type_sfero,
-    type_kubo,
+    type_kubo,                          //  BROKEN EDGES
     type_cilindro,
     
     type_ebeno =                        0x0080,
     
     type_kunigajo_2 =                   0x0100,
     type_kunigajo_3,
-    type_kunigajo_4,                    // YET NOT IMPLEMENTED
+    type_kunigajo_4,
     type_komunajo_2,
     type_komunajo_3,
-    type_komunajo_4,                    // YET NOT IMPLEMENTED
+    type_komunajo_4,
     type_komplemento,
     type_glata_kunigajo_2,
     type_glata_komunajo_2,

@@ -98,8 +98,8 @@ int main( int argc, char **argv ) {
             primitives::rotacioQ        ::create_from(
                     { 1, w, r * d.x, r * d.y, r * d.z } ) );
     CUDA->AddPrimitive(
-            primitives::komunajo_2      ::create_from(
-                    { 1, 2 } ) );
+            primitives::komunajo_3      ::create_from(
+                    { 1, 2, 5 } ) );
     CUDA->AddPrimitive(
             primitives::kubo            ::create_from(
                     { 50.f, 50.f, 50.f } ) );
@@ -107,14 +107,14 @@ int main( int argc, char **argv ) {
             primitives::komplemento     ::create_from(
                     { 1 } ) );
     CUDA->AddPrimitive(
-            primitives::kunigajo_2      ::create_from(
-                    { 1, 3 } ) );
-    CUDA->AddPrimitive(
             primitives::movo            ::create_from(
                     { 1, 0.f, 0.f, -50.f } ) );
     CUDA->AddPrimitive(
             primitives::sfero           ::create_from(
                     { 60.f } ) );
+    CUDA->AddPrimitive(
+            primitives::komplemento     ::create_from(
+                    { 1 } ) );
     CUDA->AddPrimitive(
             primitives::movo            ::create_from(
                     { 1, 0.f, 0.f, 50.f } ) );
