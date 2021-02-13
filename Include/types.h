@@ -30,7 +30,7 @@ enum object_type {
     type_nenio =                        0x0000,
     type_portanta_sfero,                //  BROKEN ILLUMINATION
     type_sfero,
-    type_kubo,                          //  BROKEN EDGES
+    type_kubo,
     type_cilindro,
     
     type_ebeno =                        0x0080,

@@ -627,18 +627,18 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
             curr_dist = RAYS_DIST( curr_ptr, r.p );
 
             if ( curr_dist < RAYS_MIN_DIST ) {
-                if ( curr_dist < 0.f ) {
+                if ( curr_dist < -0.f ) {
                     curr_norm.x = -r.d.x;
                     curr_norm.y = -r.d.y;
                     curr_norm.z = -r.d.z;
                 } else {
                     curr_norm = RAYS_NORM( curr_ptr, r.p );
+                    scalar R_1 = r_length_3( curr_norm.x, curr_norm.y, curr_norm.z );
+                    curr_norm = atomic::mul_point( curr_norm, R_1 );
                 }
 
                 if ( atomic::dot( curr_norm, r.d ) < 0.f ) {
-                    scalar R_1 = r_length_3( curr_norm.x, curr_norm.y, curr_norm.z ), N_L;
-                    curr_norm = atomic::mul_point( curr_norm, R_1 );
-                    N_L = atomic::dot( curr_norm, light );
+                    float N_L = atomic::dot( curr_norm, light );
 
                     float
                         SHADOW = 1.f,
@@ -648,43 +648,58 @@ _KERNEL kernel_Process( const size_t *Width, const size_t *Height, const rays_in
 
                     ray_dist = RAYS_MIN_DIST;
 
-#define DELTA       5
+#define DELTA       1
 #define HARDNESS    128.f
 
                     p = r.p;
-                    p.x += DELTA * RAYS_MIN_DIST * light.x;
-                    p.y += DELTA * RAYS_MIN_DIST * light.y;
-                    p.z += DELTA * RAYS_MIN_DIST * light.z;
-                    ray_dist = DELTA * RAYS_MIN_DIST;
+                    p.x += ( 1 + DELTA ) * RAYS_MIN_DIST * light.x;
+                    p.y += ( 1 + DELTA ) * RAYS_MIN_DIST * light.y;
+                    p.z += ( 1 + DELTA ) * RAYS_MIN_DIST * light.z;
+                    ray_dist = ( 1 + DELTA ) * RAYS_MIN_DIST;
 
-//#pragma unroll
-                   for ( size_t J = 0; J < 200; ++J ) {
-                       curr_dist = RAYS_DIST( curr_ptr, p );
+                    for ( size_t J = 0; J < 300; ++J ) {
+                        curr_dist = RAYS_DIST( curr_ptr, p );
+                        if ( 8 * curr_dist < RAYS_MIN_DIST ) {
+                            if ( curr_dist < -0.f ) {
+                                curr_norm.x = -light.x;
+                                curr_norm.y = -light.y;
+                                curr_norm.z = -light.z;
+                            } else {
+                                curr_norm = RAYS_NORM( curr_ptr, p );
+                                scalar R_1 = r_length_3( curr_norm.x, curr_norm.y, curr_norm.z );
+                                curr_norm = atomic::mul_point( curr_norm, R_1 );
+                            }
+                            
+                            if ( atomic::dot( curr_norm, r.d ) < RAYS_MIN_DIST ) {
+                                SHADOW = 0.f;
+                                break;
+                            }
+                        }
                    
-                       SHADOW = min( SHADOW, HARDNESS * curr_dist / ray_dist );
-                       if ( SHADOW < 0.01f )
-                           break;
+                        SHADOW = min( SHADOW, HARDNESS * curr_dist / ray_dist );
+                        if ( SHADOW < 0.01f )
+                            break;
 
-                       p.x += curr_dist * light.x;
-                       p.y += curr_dist * light.y;
-                       p.z += curr_dist * light.z;
-                       ray_dist += curr_dist;
+                        p.x += curr_dist * light.x;
+                        p.y += curr_dist * light.y;
+                        p.z += curr_dist * light.z;
+                        ray_dist += curr_dist;
 
-                       // LIGHT
-                       if ( ray_dist >= RAYS_MAX_DIST )
-                           break;
-                   }
+                        // LIGHT
+                        if ( ray_dist >= RAYS_MAX_DIST )
+                            break;
+                    }
 
-                    float3 MATERIAL = { 1.f, 1.f, 1.f };
+                    float3 MATERIAL = { .5f, .7f, 1.f };
                     raw_byte LIGHT =
                         0xff * ( RAYS_MIN_LUM + ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * ( N_L > 0.f ? N_L : 0.f ) * SHADOW );
-                        //  0xff * ( RAYS_MIN_LUM + ( RAYS_MAX_LUM - RAYS_MIN_LUM ) * .5f * ( N_L + 1.f ) * SHADOW );
                     PIXEL = {
                          raw_byte( LIGHT * MATERIAL.x ),
                          raw_byte( LIGHT * MATERIAL.y ),
                          raw_byte( LIGHT * MATERIAL.z ),
                          0xff
                     };
+                    
                     break;
                 }
             }

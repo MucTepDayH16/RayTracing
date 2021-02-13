@@ -87,7 +87,7 @@ switch ( __SELF__->type ) {                                                     
 #define RAYS_BLOCK_2D_y             8
 
 #define RAYS_MAX_DIST               10000.f
-#define RAYS_MIN_DIST               .1f
+#define RAYS_MIN_DIST               .02f
 
 #define RAYS_MAX_LUM                .9f
 #define RAYS_MIN_LUM                .1f
