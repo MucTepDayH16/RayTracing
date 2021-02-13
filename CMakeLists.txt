@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.17)
 project(RayTracing VERSION 1.0 LANGUAGES CXX CUDA)
 
+set(WITH_ENVIRONMENT 0)
+
 set(RT_INC)
 set(RT_CXX_SRC
         ${PROJECT_SOURCE_DIR}/Source/main.cpp

@@ -28,21 +28,30 @@ int raymarching::Init( rays_Init_args ) {
     
     size_t          _cubin_len;
     void*           _cubin_src;
-    
+
+#if __WITH_ENV__
     std::string     _cuda_source =
             IO::read_source( std::string(__PROJ_DIR__) + "Source/cuda_kernels.cu" );
     uint8_t*        _hash = SHA3_256( _cuda_source );
     std::string     _hash_file =
-            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels.cu.hash";
+            std::string(__PROJ_DIR__) +
+            "CuBin/cuda_kernels_" +
+            std::to_string(_cc_div_10) +
+#ifdef _DEBUG
+            ".debug" +
+#endif
+            ".cu.hash";
     std::vector<char>   _hash_source =
             IO::read_binary( _hash_file );
     
     std::string     _cubin_file =
+            std::string(__PROJ_DIR__) +
+            "CuBin/cuda_kernels_" +
+            std::to_string(_cc_div_10) +
 #ifdef _DEBUG
-            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels_" + std::to_string(_cc_div_10) + ".debug.cubin";
-#else
-            std::string(__PROJ_DIR__) + "CuBin/cuda_kernels_" + std::to_string(_cc_div_10) + ".cubin";
+            ".debug" +
 #endif
+            ".cubin";
     std::vector<char>   _cubin_source =
             IO::read_binary( _cubin_file );
     
@@ -142,7 +151,18 @@ int raymarching::Init( rays_Init_args ) {
         _cubin_src = _cubin_source.data();
         _cubin_len = _cubin_source.size();
     }
-    
+#else
+    std::string     _cubin_file =
+            "./CuBin/cuda_kernels_" +
+            std::to_string(_cc_div_10) +
+#ifdef _DEBUG
+            ".debug" +
+#endif
+            ".cubin";
+    std::vector<char>   _cubin_source = IO::read_binary( _cubin_file );
+    _cubin_src = _cubin_source.data();
+    _cubin_len = _cubin_source.size();
+#endif
     _CUDA( cuModuleLoadData( &_module, _cubin_src ) )
     
     //_CUDA( cuModuleLoad( &_module, _PATH ) )
